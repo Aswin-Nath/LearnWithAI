@@ -1,0 +1,47 @@
+/* Dashboard feature styles */
+/* === ADMIN DASHBOARD === */
+.admin-dashboard-wrapper {
+  background: var(--bg-primary);
+  min-height: 100vh;
+}
+
+.admin-dashboard-container {
+  display: flex;
+  height: calc(100vh - 64px);
+  overflow: hidden;
+}
+
+.admin-dashboard-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* SCROLLBAR */
+.admin-dashboard-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-dashboard-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-dashboard-content::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 4px;
+}
+
+.admin-dashboard-content::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .admin-dashboard-container {
+    flex-direction: column;
+  }
+
+  .admin-dashboard-content {
+    height: auto;
+  }
+}
