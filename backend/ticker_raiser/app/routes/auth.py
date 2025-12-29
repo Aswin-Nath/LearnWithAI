@@ -1,73 +1,39 @@
-import os
-from datetime import datetime, timezone
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Cookie
+"""
+Authentication routes - localStorage-based (no JWT tokens).
+Frontend stores user ID in localStorage and sends via X-User-Id header.
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.schemas.auth import (
-    RegisterRequest,
-    LoginRequest,
-    RefreshTokenRequest,
-    TokenResponse,
-    UserResponse,
-    MessageResponse
-)
-from app.services.auth import (
-    login_flow,refresh_tokens_service,logout_flow,register_service,logout_all_sessions_service
-)
-from app.dependencies.auth import get_current_user, get_token_from_header, oauth2_scheme
-from app.core.exceptions import (
-    InvalidCredentialsException,
-    UserAlreadyExistsException,
-    InvalidTokenException,
-    TokenBlacklistedException,
-    UserNotFoundException,
-    SessionExpiredException
-)
+from app.schemas.auth import RegisterRequest, MessageResponse, UserResponse
+from app.services.auth import register_service
+from app.crud.auth import UserCRUD
+from app.core.security import verify_password
+from app.core.exceptions import UserAlreadyExistsException, InvalidCredentialsException
+from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["AUTH"])
 
-# ============================================================================
-# Configuration
-# ============================================================================
-SECURE_REFRESH_COOKIE = os.getenv("SECURE_REFRESH_COOKIE", "true").lower() in ("1", "true", "yes")
-REFRESH_COOKIE_SAMESITE = os.getenv("REFRESH_COOKIE_SAMESITE", "lax")
-REFRESH_COOKIE_NAME = "refresh_token"
-REFRESH_COOKIE_PATH = "/auth/refresh"
-
 
 # ============================================================================
-# Helper Functions
+# Response Models
 # ============================================================================
 
-def _set_refresh_cookie(response: Response, token: str, expires_at: Optional[datetime]):
-    """Store the refresh token securely via HttpOnly cookie."""
-    max_age = None
-    expires_value = None
-    if expires_at:
-        expires_utc = expires_at if expires_at.tzinfo is not None else expires_at.replace(tzinfo=timezone.utc)
-        expires_utc = expires_utc.astimezone(timezone.utc)
-        time_left = int((expires_utc - datetime.now(tz=timezone.utc)).total_seconds())
-        if time_left > 0:
-            max_age = time_left
-        expires_value = expires_utc
-
-    response.set_cookie(
-        key=REFRESH_COOKIE_NAME,
-        value=token,
-        httponly=True,
-        secure=SECURE_REFRESH_COOKIE,
-        samesite=REFRESH_COOKIE_SAMESITE,
-        path=REFRESH_COOKIE_PATH,
-        max_age=max_age,
-        expires=expires_value,
-    )
+class LoginResponse(BaseModel):
+    """User info returned on successful login (stored in localStorage)."""
+    id: int
+    username: str
+    email: str
+    role: str
+    message: str = "Login successful"
 
 
 # ============================================================================
-# 🔹 CREATE - Register new user account
+# Register User
 # ============================================================================
 
 @router.post("/register", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
@@ -75,24 +41,18 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
     """
     Register a new user with email and password.
     
-    Validates:
-    1. Email format and uniqueness
-    2. Password strength requirements
-    3. User data completeness
+    Validates email uniqueness and password requirements.
     
     Args:
-        request (RegisterRequest): User registration data with email, password, username
-        db (Session): Database session dependency
+        request: User registration data (email, password, username)
+        db: Database session
     
     Returns:
-        MessageResponse: Confirmation message
+        Confirmation message
     
     Raises:
-        HTTPException (409): If email already exists
-        HTTPException (400): If validation fails
-    
-    Side Effects:
-        - Creates new user record in database
+        HTTPException 409: If email already exists
+        HTTPException 400: If validation fails
     """
     try:
         register_service(
@@ -110,52 +70,50 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
 
 
 # ============================================================================
-# 🔹 CREATE - Login user (OAuth2 Password Flow)
+# Login User (Simple - No JWT)
 # ============================================================================
 
-@router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
+@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 async def login(
-    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    request: Request = None,
     db: Session = Depends(get_db),
 ):
     """
-    User login endpoint (OAuth2 Password Flow).
+    User login endpoint (localStorage-based).
     
-    Authenticates user credentials (email and password) and issues JWT access and
-    refresh tokens on successful authentication. Logs device information and client IP 
-    for security auditing.
+    Validates email/username and password. Returns user info that frontend
+    stores in localStorage. No JWT tokens.
     
     Args:
-        form_data (OAuth2PasswordRequestForm): OAuth2 form containing username (email) and password
-        response (Response): FastAPI response to set the refresh token cookie
-        request (Request): HTTP request object for device tracking and IP logging
-        db (Session): Database session dependency
+        form_data: OAuth2 form with username (email) and password
+        db: Database session
     
     Returns:
-        TokenResponse: Contains access_token metadata (token_type, expires_in)
+        User info (id, username, email, role) to store in localStorage
     
     Raises:
-        HTTPException (401): If credentials are invalid
-    
-    Side Effects:
-        - Creates session record
-        - Sets HttpOnly refresh cookie
+        HTTPException 401: If credentials are invalid
     """
     try:
-        auth_result = login_flow(
-            db,
-            identifier=form_data.username,
-            password=form_data.password,
-            device_info=request.headers.get("user-agent") if request else None,
-            client_host=request.client.host if request and request.client else None,
+        # Get user by email or username
+        user = UserCRUD.get_user_by_email(db, form_data.username)
+        if not user:
+            user = UserCRUD.get_user_by_username(db, form_data.username)
+        
+        if not user:
+            raise InvalidCredentialsException()
+        
+        # Verify password
+        if not verify_password(form_data.password, user.hashed_password):
+            raise InvalidCredentialsException()
+        
+        return LoginResponse(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            role=user.role or "USER",
+            message="Login successful"
         )
-        
-        # Set refresh token in secure HttpOnly cookie
-        _set_refresh_cookie(response, auth_result.refresh_token, auth_result.refresh_token_expires_at)
-        
-        return auth_result.token_response
     except InvalidCredentialsException:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -169,262 +127,49 @@ async def login(
 
 
 # ============================================================================
-# 🔹 UPDATE - Refresh access token
-# ============================================================================
-
-@router.post("/refresh", response_model=TokenResponse, status_code=status.HTTP_200_OK)
-async def refresh(
-    response: Response,
-    refresh_token: Optional[str] = Cookie(None),
-    db: Session = Depends(get_db)
-):
-    """
-    Refresh JWT access token using HttpOnly refresh cookie.
-    
-    Reads the refresh token from secure cookie, validates it, and issues a new
-    access token while keeping the refresh token valid for continued use.
-    
-    Args:
-        response (Response): FastAPI response to update the refresh token cookie
-        refresh_token (str | None): Refresh token from HttpOnly cookie
-        db (Session): Database session dependency
-    
-    Returns:
-        TokenResponse: Updated access_token metadata
-    
-    Raises:
-        HTTPException (401): If refresh token is missing, invalid, or revoked
-    
-    Side Effects:
-        - Updates refresh token cookie expiry
-    """
-    if not refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing refresh token"
-        )
-    
-    try:
-        auth_result = refresh_tokens_service(db, refresh_token)
-        
-        # Update refresh token cookie
-        _set_refresh_cookie(response, auth_result.refresh_token, auth_result.refresh_token_expires_at)
-        
-        return auth_result.token_response
-    except (InvalidTokenException, TokenBlacklistedException, SessionExpiredException):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-# ============================================================================
-# 🔹 DELETE - Logout user
+# Logout User (Frontend Only)
 # ============================================================================
 
 @router.post("/logout", response_model=MessageResponse, status_code=status.HTTP_200_OK)
-async def logout(
-    response: Response,
-    current_user: UserResponse = Depends(get_current_user),
-    token: str = Depends(get_token_from_header),
-    db: Session = Depends(get_db)
-):
+async def logout(current_user = Depends(get_current_user)):
     """
     User logout endpoint.
     
-    Logs out the current user by blacklisting the access token and revoking 
-    the associated session. Prevents token reuse and forces re-authentication 
-    on the next request.
+    Frontend should clear localStorage and redirect to login page.
+    Backend just confirms logout (actual auth state managed by frontend).
     
     Args:
-        response (Response): FastAPI response to clear cookies
-        current_user (UserResponse): Currently authenticated user
-        token (str): OAuth2 bearer token from Authorization header
-        db (Session): Database session dependency
+        current_user: Current authenticated user (validates X-User-Id header)
     
     Returns:
-        MessageResponse: Confirmation message for successful logout
+        Confirmation message
+    """
+    return {"message": f"User {current_user.username} logged out successfully"}
+
+
+# ============================================================================
+# Get Current User
+# ============================================================================
+
+@router.get("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
+async def get_current_user_info(current_user = Depends(get_current_user)):
+    """
+    Get current authenticated user information.
+    
+    Uses X-User-Id header from localStorage.
+    
+    Args:
+        current_user: Current authenticated user
+    
+    Returns:
+        Current user info
     
     Raises:
-        HTTPException (401): If token is invalid or already blacklisted
-    
-    Side Effects:
-        - Blacklists the access token
-        - Revokes user session
-        - Clears refresh token cookie
+        HTTPException 401: If not authenticated
     """
-    try:
-        from app.core.security import decode_token
-        
-        payload = decode_token(token)
-        jti = payload.get("jti")
-        
-        if not jti:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No JTI found in token"
-            )
-        
-        message = logout_flow(db, current_user.id, jti)
-        
-        # Clear refresh token cookie
-        response.delete_cookie(
-            key=REFRESH_COOKIE_NAME,
-            path=REFRESH_COOKIE_PATH
-        )
-        
-        return {"message": message}
-    except HTTPException:
-        raise
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Logout failed: {str(e)}"
-        )
-
-
-# ============================================================================
-# 🔹 DELETE - Logout from all sessions
-# ============================================================================
-
-@router.post("/logout-all", response_model=MessageResponse, status_code=status.HTTP_200_OK)
-async def logout_all(
-    response: Response,
-    current_user: UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Logout user from all active sessions.
-    
-    Revokes all active sessions for the user, blacklisting all access tokens
-    and preventing access from any device or session.
-    
-    Args:
-        response (Response): FastAPI response to clear cookies
-        current_user (UserResponse): Currently authenticated user
-        db (Session): Database session dependency
-    
-    Returns:
-        MessageResponse: Confirmation with count of revoked sessions
-    
-    Side Effects:
-        - Revokes all user sessions
-        - Clears refresh token cookie
-    """
-    try:
-        message = logout_all_sessions_service(db, current_user.id)
-        
-        # Clear refresh token cookie
-        response.delete_cookie(
-            key=REFRESH_COOKIE_NAME,
-            path=REFRESH_COOKIE_PATH
-        )
-        
-        return {"message": message}
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Logout all failed"
-        )
-
-
-# ============================================================================
-# 🔹 POST - Verify email exists in system
-# ============================================================================
-
-@router.post("/verify-email", response_model=MessageResponse, status_code=status.HTTP_200_OK)
-async def verify_email(request: dict, db: Session = Depends(get_db)):
-    """
-    Verify if email exists in the system.
-    
-    Args:
-        request: Dictionary with 'email' key
-        db (Session): Database session dependency
-    
-    Returns:
-        MessageResponse: Confirmation message
-    
-    Raises:
-        HTTPException (404): If email not found
-    """
-    from app.crud.auth import UserCRUD
-    
-    email = request.get("email")
-    if not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email is required"
-        )
-    
-    user = UserCRUD.get_user_by_email(db, email)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Email not found in system"
-        )
-    
-    return {"message": "Email verified successfully"}
-
-
-# ============================================================================
-# 🔹 POST - Change password using email
-# ============================================================================
-
-@router.post("/change-password", response_model=MessageResponse, status_code=status.HTTP_200_OK)
-async def change_password(
-    request: dict,
-    db: Session = Depends(get_db)
-):
-    """
-    Change password for the authenticated user.
-    
-    Args:
-        request: Dictionary with 'email' and 'new_password' keys
-        current_user (UserResponse): Currently authenticated user
-        db (Session): Database session dependency
-    
-    Returns:
-        MessageResponse: Confirmation message
-    
-    Raises:
-        HTTPException (400): If email or password invalid
-        HTTPException (401): If user not authenticated
-    """
-    from app.crud.auth import UserCRUD
-    from app.core.security import hash_password
-    
-    email = request.get("email")
-    new_password = request.get("new_password")
-    
-    if not email or not new_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email and new password are required"
-        )
-    
-
-    # Get user from database
-    user = UserCRUD.get_user_by_email(db, email)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Hash new password
-    hashed_password = hash_password(new_password)
-    
-    # Update password
-    user.hashed_password = hashed_password
-    db.commit()
-    db.refresh(user)
-    
-    return {"message": "Password changed successfully"}
-
+    return UserResponse(
+        id=current_user.id,
+        username=current_user.username,
+        email=current_user.email,
+        role=current_user.role or "USER"
+    )

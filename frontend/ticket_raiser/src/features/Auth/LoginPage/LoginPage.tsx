@@ -32,7 +32,7 @@ export const LoginPage: React.FC = () => {
     }
 
     try {
-      await login(email, password);
+      await login({ username: email, password });
       setSuccess('Login successful! Redirecting...');
       setTimeout(() => navigate('/'), 1500);
     } catch (err) {
@@ -43,59 +43,61 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="login-wrapper">
       <div className="login-container">
-        <h2>Welcome Back</h2>
-        
-        {error && <div className="alert alert-error">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
+       <h2>Welcome Back</h2>
+            
+            {error && <div className="alert alert-error">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError(null);
-              }}
-              disabled={isLoading}
-              className="form-input"
-            />
-          </div>
+            <form className="login-form" onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError(null);
+                  }}
+                  disabled={isLoading}
+                  className="form-input"
+                />
+              </div>
 
-          <div className="form-group">
-            <label>Password</label>
-            <div className="password-input-wrapper">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError(null);
-                }}
-                disabled={isLoading}
-                className="form-input"
-              />
-              <button
-                type="button"
-                className="toggle-password"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                <EyeIcon show={showPassword} />
+              <div className="form-group">
+                <label>Password</label>
+                <div className="password-input-wrapper">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError(null);
+                    }}
+                    disabled={isLoading}
+                    className="form-input"
+                  />
+                  <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    <EyeIcon show={showPassword} />
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" disabled={isLoading} className="btn-primary">
+                {isLoading ? 'Logging in...' : 'Login'}
               </button>
-            </div>
-          </div>
+            </form>
 
-          <button type="submit" disabled={isLoading} className="btn-primary">
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
+            <p className="form-footer">
+              Don't have an account? <button type="button" onClick={() => navigate('/signup')} className="link-button">Sign up</button>
+              <br />
 
-        <p className="form-footer">
-          Don't have an account? <button type="button" onClick={() => navigate('/signup')} className="link-button">Sign up</button>
-        </p>
+            </p>
       </div>
     </div>
   );

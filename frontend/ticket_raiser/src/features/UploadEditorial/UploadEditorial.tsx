@@ -1,7 +1,7 @@
 // UploadEditorial feature component
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Navbar } from '../../components/Navbar';
+import { Navbar } from '../../components/Navbar/Navbar';
 import { apiFetch } from '../../core/api';
 import './UploadEditorial.css';
 
@@ -81,6 +81,7 @@ export const UploadEditorialPage: React.FC = () => {
       return;
     }
 
+    // Only accept PDF files
     if (selectedFile.type !== 'application/pdf') {
       setError('Only PDF files are allowed');
       return;
@@ -107,18 +108,31 @@ export const UploadEditorialPage: React.FC = () => {
       setUploading(true);
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('problem_id', id!);
 
-      const data = await apiFetch(`/problems/${id}/editorial`, {
+      // Upload PDF - will be uploaded to Cloudinary and ingested to Chroma
+      const data = await apiFetch(`/problems/${id}/editorial/pdf`, {
         method: 'POST',
         body: formData,
       });
 
-      // The response contains the editorial_url_link in the updated problem
-      setEditorial(data.data?.editorial_url_link || data.editorial_url_link || file.name);
+      // Extract URL from response message if available
+      const message = data.message || '';
+      const urlMatch = message.match(/View at: (.+?)(?:\s|$)/);
+      const pdfUrl = urlMatch ? urlMatch[1] : null;
+
+      // Set editorial to the URL or success message
+      setEditorial(pdfUrl || 'PDF successfully uploaded and indexed');
       setFile(null);
+      setError(null);
 
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
+
+      // Refresh problem data to show URL
+      if (pdfUrl) {
+        setTimeout(() => fetchData(), 1000);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -180,7 +194,7 @@ export const UploadEditorialPage: React.FC = () => {
                   <FileIcon />
                   <div className="file-details">
                     <h3>Editorial PDF</h3>
-                    <p>Uploaded</p>
+                    <p>Uploaded and indexed for knowledge base</p>
                   </div>
                 </div>
                 <button
@@ -196,13 +210,21 @@ export const UploadEditorialPage: React.FC = () => {
               <div className="editorial-meta">
                 <p>
                   <span>Status:</span>
-                  Editorial PDF uploaded successfully
+                  ✓ PDF uploaded to storage and indexed in knowledge base
                 </p>
+                {editorial && editorial.startsWith('http') && (
+                  <p>
+                    <span>URL:</span>
+                    <a href={editorial} target="_blank" rel="noopener noreferrer" className="editorial-url">
+                      View Editorial
+                    </a>
+                  </p>
+                )}
               </div>
 
-              <a href={editorial} target="_blank" rel="noopener noreferrer" className="btn-view">
-                View Editorial
-              </a>
+              {editorial && !editorial.startsWith('http') && (
+                <p className="upload-success">✓ {editorial}</p>
+              )}
 
               <div className="upload-divider">
                 <span>Replace with new file</span>
@@ -211,12 +233,12 @@ export const UploadEditorialPage: React.FC = () => {
           ) : (
             <div className="empty-state">
               <p>No editorial uploaded yet.</p>
-              <p className="empty-subtitle">Upload a PDF to provide the solution editorial.</p>
+              <p className="empty-subtitle">Upload a PDF file to add to the problem's knowledge base.</p>
             </div>
           )}
 
           <form onSubmit={handleUpload} className="upload-form">
-            <h2>{editorial ? 'Upload New Editorial' : 'Upload Editorial'}</h2>
+            <h2>{editorial ? 'Upload New Editorial PDF' : 'Upload Editorial PDF'}</h2>
 
             <label className="upload-area">
               <input
@@ -236,7 +258,7 @@ export const UploadEditorialPage: React.FC = () => {
                         {file.name}
                       </>
                     ) : (
-                      <>Click to select a PDF</>
+                      <>Click to select a PDF file</>
                     )}
                   </p>
                   <p className="upload-sub">or drag and drop your PDF file here</p>

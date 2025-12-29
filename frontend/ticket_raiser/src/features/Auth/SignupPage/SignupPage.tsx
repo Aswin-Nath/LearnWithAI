@@ -15,7 +15,7 @@ const EyeIcon = ({ show }: { show: boolean }) => (
 
 export const SignupPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signup, isLoading } = useAuth();
+  const { register, isLoading } = useAuth();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -45,7 +45,7 @@ export const SignupPage: React.FC = () => {
     }
 
     try {
-      await signup(username, email, password);
+      await register({ username, email, password });
       setSuccess('Signup successful! Redirecting to login...');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {

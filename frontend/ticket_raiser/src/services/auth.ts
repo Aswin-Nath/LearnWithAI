@@ -2,11 +2,12 @@ import { apiFetch } from '../core/api';
 import type {
   RegisterRequest,
   LoginRequest,
-  TokenResponse,
   MessageResponse,
   User
 } from '../schemas/auth';
-import { ACCESS_TOKEN_KEY, ACCESS_TOKEN_EXPIRY_KEY, USER_KEY } from '../core/config';
+
+const USER_KEY = 'user';
+const USER_ID_KEY = 'userId';
 
 export const authService = {
   /**
@@ -20,9 +21,9 @@ export const authService = {
   },
 
   /**
-   * Login user and store tokens (OAuth2 form-encoded)
+   * Login user and store in localStorage
    */
-  async login(data: LoginRequest): Promise<TokenResponse> {
+  async login(data: LoginRequest): Promise<User> {
     // Convert to form-encoded data for OAuth2PasswordRequestForm
     const formData = new URLSearchParams();
     formData.append('username', data.username);
@@ -36,113 +37,30 @@ export const authService = {
       body: formData.toString()
     });
 
-    // Store access token and expiry (refresh token is in HttpOnly cookie)
-    this.setTokens(response.access_token, response.expires_at);
+    // Store user info in localStorage
+    this.setUser(response);
 
     return response;
   },
 
   /**
-   * Refresh access token using HttpOnly cookie
-   */
-  async refresh(): Promise<TokenResponse> {
-    // No need to send refresh token - it's in the HttpOnly cookie
-    const response = await apiFetch('/auth/refresh', {
-      method: 'POST',
-      credentials: 'include' // Include cookies in request
-    });
-
-    // Update stored access token and expiry
-    this.setTokens(response.access_token, response.expires_at);
-
-    return response;
-  },
-
-  /**
-   * Logout from current session
+   * Logout from session (clear localStorage)
    */
   async logout(): Promise<MessageResponse> {
     try {
-      // Removed <MessageResponse> generic
       const response = await apiFetch('/auth/logout', {
         method: 'POST'
       });
 
-      // Clear stored tokens
-      this.clearTokens();
+      // Clear localStorage
+      this.clearUser();
 
       return response;
     } catch (error) {
-      // Clear tokens even if request fails
-      this.clearTokens();
+      // Clear localStorage even if request fails
+      this.clearUser();
       throw error;
     }
-  },
-
-  /**
-   * Logout from all sessions
-   */
-  async logoutAll(): Promise<MessageResponse> {
-    try {
-      // Removed <MessageResponse> generic
-      const response = await apiFetch('/auth/logout-all', {
-        method: 'POST'
-      });
-
-      // Clear stored tokens
-      this.clearTokens();
-
-      return response;
-    } catch (error) {
-      // Clear tokens even if request fails
-      this.clearTokens();
-      throw error;
-    }
-  },
-
-  /**
-   * Get current user information
-   */
-  async getCurrentUser(): Promise<User> {
-    return apiFetch('/users/me', {
-      method: 'GET'
-    });
-  },
-
-  /**
-   * Change password
-   */
-  async changePassword(data: {
-    currentPassword: string;
-    newPassword: string;
-  }): Promise<MessageResponse> {
-    return apiFetch('/auth/change-password', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  },
-
-  /**
-   * Store access token and expiry in localStorage
-   */
-  setTokens(accessToken: string, expiresAt: number): void {
-    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-    localStorage.setItem(ACCESS_TOKEN_EXPIRY_KEY, expiresAt.toString());
-  },
-
-  /**
-   * Get stored access token
-   */
-  getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
-  },
-
-  /**
-   * Get stored access token expiry timestamp
-   */
-  getAccessTokenExpiry(): number | null {
-    const expiry = localStorage.getItem(ACCESS_TOKEN_EXPIRY_KEY);
-    return expiry ? parseInt(expiry, 10) : null;
   },
 
   /**
@@ -150,6 +68,7 @@ export const authService = {
    */
   setUser(user: User): void {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(USER_ID_KEY, user.id.toString());
   },
 
   /**
@@ -161,18 +80,24 @@ export const authService = {
   },
 
   /**
+   * Get stored user ID
+   */
+  getUserId(): string | null {
+    return localStorage.getItem(USER_ID_KEY);
+  },
+
+  /**
    * Clear all stored auth data
    */
-  clearTokens(): void {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(ACCESS_TOKEN_EXPIRY_KEY);
+  clearUser(): void {
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(USER_ID_KEY);
   },
 
   /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {
-    return !!this.getAccessToken();
+    return !!this.getUser();
   }
 };

@@ -1,7 +1,8 @@
 // CreateProblem feature component
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Navbar } from '../../components/Navbar';
+// import { Navbar } from '../../components/Navbar';
+import { Navbar } from '../../components/Navbar/Navbar';
 import { apiFetch } from '../../core/api';
 import './CreateProblem.css';
 

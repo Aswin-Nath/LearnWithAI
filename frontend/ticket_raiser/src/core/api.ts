@@ -35,10 +35,10 @@ export async function apiFetch(
   // Merge with provided headers
   Object.assign(defaultHeaders, headers);
 
-  // Add authentication token if available
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  // Add user ID header for authentication (localStorage-based)
+  const userId = localStorage.getItem('userId');
+  if (userId) {
+    defaultHeaders['X-User-Id'] = userId;
   }
 
   const controller = new AbortController();
@@ -48,7 +48,6 @@ export async function apiFetch(
     const response = await fetch(url, {
       ...fetchOptions,
       headers: defaultHeaders,
-      credentials: 'include', // Include cookies for refresh token
       signal: controller.signal
     });
 

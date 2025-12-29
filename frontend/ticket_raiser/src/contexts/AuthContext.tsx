@@ -11,8 +11,6 @@ interface AuthContextType {
   register: (data: RegisterRequest) => Promise<void>;
   login: (data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
-  logoutAll: () => Promise<void>;
-  changePassword: (data: { currentPassword: string; newPassword: string }) => Promise<void>;
   clearError: () => void;
 }
 
@@ -23,25 +21,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize auth state once on mount
+  // Initialize auth state from localStorage on mount
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (authService.isAuthenticated()) {
-          const currentUser = await authService.getCurrentUser();
-          setUser(currentUser);
-          authService.setUser(currentUser);
-        }
-      } catch (err) {
-        authService.clearTokens();
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
       }
-    };
-
-    initAuth();
-  }, []); // Only run once on mount
+    } catch (err) {
+      console.error('Failed to load user from localStorage:', err);
+      localStorage.removeItem('user');
+      localStorage.removeItem('userId');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const register = useCallback(async (data: RegisterRequest) => {
     try {
@@ -49,13 +43,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       await authService.register(data);
       // Auto-login after registration
-      await authService.login({
+      const loginUser = await authService.login({
         username: data.email,
         password: data.password
       });
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
-      authService.setUser(currentUser);
+      setUser(loginUser);
+      authService.setUser(loginUser);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Registration failed';
       setError(message);
@@ -69,10 +62,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
       setError(null);
-      await authService.login(data);
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
-      authService.setUser(currentUser);
+      const loginUser = await authService.login(data);
+      setUser(loginUser);
+      authService.setUser(loginUser);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
@@ -88,21 +80,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       await authService.logout();
       setUser(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Logout failed';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const logoutAll = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      await authService.logoutAll();
-      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('userId');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Logout failed';
       setError(message);
@@ -116,20 +95,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
   }, []);
 
-  const changePassword = useCallback(async (data: { currentPassword: string; newPassword: string }) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      await authService.changePassword(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to change password';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -138,8 +103,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     register,
     login,
     logout,
-    logoutAll,
-    changePassword,
     clearError
   };
 

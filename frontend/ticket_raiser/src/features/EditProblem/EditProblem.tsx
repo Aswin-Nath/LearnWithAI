@@ -1,7 +1,8 @@
 // EditProblem feature component
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Navbar } from '../../components/Navbar';
+// import { Navbar } from '../../components/Navbar';
+import { Navbar } from '../../components/Navbar/Navbar';
 import { apiFetch } from '../../core/api';
 import './EditProblem.css';
 

@@ -219,7 +219,6 @@ authService.clearTokens(); // Clears all stored auth data
 ## Next Steps
 
 - [ ] Add problem management pages
-- [ ] Add issue tracking UI
 - [ ] Add submission handling
 - [ ] Add admin dashboard
 - [ ] Add user settings page

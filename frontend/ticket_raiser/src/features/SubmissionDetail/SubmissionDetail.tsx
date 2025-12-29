@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Navbar } from '../../components/Navbar';
+// import { Navbar } from '../../components/Navbar';
+import { Navbar } from '../../components/Navbar/Navbar';
 import { apiFetch } from '../../core/api';
 import './SubmissionDetail.css';
 

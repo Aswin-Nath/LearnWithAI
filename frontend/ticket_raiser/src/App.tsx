@@ -5,21 +5,25 @@ import { AuthProvider } from './contexts/AuthContext';
 // Auth pages
 import { LoginPage } from './features/Auth/LoginPage/LoginPage';
 import { SignupPage } from './features/Auth/SignupPage/SignupPage';
-import { ChangePasswordPage } from './features/Auth/ChangePasswordPage/ChangePasswordPage';
-import { Profile } from './features/Profile/Profile';
 
+// import { Profile } from './features/Profile/Profile';
+import { ProfilePage } from './features/Profile/Profile';
 // Dashboard and Submission pages
 import { Dashboard } from './features/Dashboard/Dashboard';
-import { MySubmissionsPage } from './features/MySubmissions/MySubmissions';
 import { SubmissionDetailPage } from './features/SubmissionDetail/SubmissionDetail';
 
 // Problem Management pages
-import { CreateProblem } from './features/CreateProblem/CreateProblem';
-import { EditProblem } from './features/EditProblem/EditProblem';
-import { ManageTestCases } from './features/ManageTestCases/ManageTestCases';
-import { UploadEditorial } from './features/UploadEditorial/UploadEditorial';
-import { ProblemDetail } from './features/ProblemDetail/ProblemDetail';
+// import { CreateProblem } from './features/CreateProblem/CreateProblem';
+// import { EditProblem } from './features/EditProblem/EditProblem';
+// import { ManageTestCases } from './features/ManageTestCases/ManageTestCases';
+// import { UploadEditorial } from './features/UploadEditorial/UploadEditorial';
+// import { ProblemDetail } from './features/ProblemDetail/ProblemDetail';
 
+import { CreateProblemPage } from './features/CreateProblem/CreateProblem';
+import { EditProblemPage } from './features/EditProblem/EditProblem';
+import { ManageTestCasesPage } from './features/ManageTestCases/ManageTestCases';
+import { UploadEditorialPage } from './features/UploadEditorial/UploadEditorial';
+import { ProblemDetailPage } from './features/ProblemDetail/ProblemDetail';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 
@@ -47,15 +51,12 @@ function AppContent() {
           path="/signup"
           element={isAuthenticated ? <Navigate to="/" replace /> : <SignupPage />}
         />
-        <Route
-          path="/change-password"
-          element={<ChangePasswordPage />}
-        />
+
         <Route
           path="/profile"
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <Profile />
+              <ProfilePage />
             </ProtectedRoute>
           }
         />
@@ -70,14 +71,7 @@ function AppContent() {
           }
         />
 
-        <Route
-          path="/my-submissions"
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <MySubmissionsPage />
-            </ProtectedRoute>
-          }
-        />
+
 
         <Route
           path="/submissions/:submissionId"
@@ -93,7 +87,7 @@ function AppContent() {
           path="/admin/problems/create"
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <CreateProblem />
+              <CreateProblemPage />
             </ProtectedRoute>
           }
         />
@@ -101,7 +95,7 @@ function AppContent() {
           path="/admin/problems/:id/edit"
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <EditProblem />
+              <EditProblemPage />
             </ProtectedRoute>
           }
         />
@@ -109,7 +103,7 @@ function AppContent() {
           path="/admin/problems/:id/test-cases"
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <ManageTestCases />
+              <ManageTestCasesPage />
             </ProtectedRoute>
           }
         />
@@ -117,7 +111,7 @@ function AppContent() {
           path="/admin/problems/:id/editorial"
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <UploadEditorial />
+              <UploadEditorialPage />
             </ProtectedRoute>
           }
         />
@@ -127,7 +121,7 @@ function AppContent() {
           path="/problems/:id"
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <ProblemDetail />
+              <ProblemDetailPage />
             </ProtectedRoute>
           }
         />

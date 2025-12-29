@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 import './Navbar.css';
 
 const MenuIcon = () => (
@@ -66,14 +66,6 @@ export const Navbar: React.FC = () => {
 
         {/* Desktop Menu */}
         <div className="navbar-desktop">
-          <div className="navbar-links">
-            {user.role !== 'PROBLEM_SETTER' && (
-            <Link to="/" className="nav-link">Problems</Link>
-            )}
-            {user.role !== 'PROBLEM_SETTER' && (
-              <Link to="/my-submissions" className="nav-link">My Submissions</Link>
-            )}
-          </div>
 
           {/* User Menu */}
           <div className="user-menu">

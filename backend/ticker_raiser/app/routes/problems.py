@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.dependencies.auth import get_current_user, get_current_user_with_scopes
+from app.dependencies.auth import get_current_user
 from app.schemas.problem import (
     ProblemCreate,
     ProblemUpdate,
@@ -17,6 +17,10 @@ from app.schemas.problem import (
 )
 from app.services.problems import ProblemService, TestCaseService
 from app.utils.pdf_upload_util import upload_pdf_to_cloudinary
+from app.utils.md_upload_util import upload_markdown_editorial
+from app.utils.ingestion_pdf import ingest_pdf_from_file
+import tempfile
+import os
 
 router = APIRouter(prefix="/problems", tags=["PROBLEMS"])
 
@@ -30,8 +34,8 @@ router = APIRouter(prefix="/problems", tags=["PROBLEMS"])
     response_model=ProblemCreateResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new problem",
-    description="PROBLEM_SETTER only - Create a new problem with title, description, constraints, and difficulty",
-    dependencies=[Depends(get_current_user_with_scopes(["PROBLEM_SETTER"]))]
+    description="Create a new problem with title, description, constraints, and difficulty",
+    dependencies=[Depends(get_current_user)]
 )
 async def create_problem(
     problem: ProblemCreate,
@@ -39,7 +43,7 @@ async def create_problem(
     db: Session = Depends(get_db)
 ):
     """
-    Create a new problem (PROBLEM_SETTER only).
+    Create a new problem.
     
     Returns:
         - Problem ID
@@ -55,8 +59,8 @@ async def create_problem(
     "/{problem_id}",
     response_model=ProblemDetailResponse,
     summary="Update a problem",
-    description="PROBLEM_SETTER only (owner) - Update problem details",
-    dependencies=[Depends(get_current_user_with_scopes(["PROBLEM_SETTER"]))]
+    description="Update problem details",
+    dependencies=[Depends(get_current_user)]
 )
 async def update_problem(
     problem_id: int,
@@ -65,7 +69,7 @@ async def update_problem(
     db: Session = Depends(get_db)
 ):
     """
-    Update a problem (owner only).
+    Update a problem.
     
     Parameters:
         - problem_id: Problem ID to update
@@ -85,8 +89,8 @@ async def update_problem(
     "/{problem_id}",
     response_model=MessageResponse,
     summary="Delete a problem",
-    description="PROBLEM_SETTER only (owner) - Delete a problem if no submissions exist",
-    dependencies=[Depends(get_current_user_with_scopes(["PROBLEM_SETTER"]))]
+    description="Delete a problem if no submissions exist",
+    dependencies=[Depends(get_current_user)]
 )
 async def delete_problem(
     problem_id: int,
@@ -94,7 +98,7 @@ async def delete_problem(
     db: Session = Depends(get_db)
 ):
     """
-    Delete a problem (owner only).
+    Delete a problem.
     
     Rule: Only allowed if no submissions exist for this problem.
     
@@ -112,7 +116,7 @@ async def delete_problem(
     "",
     response_model=List[ProblemListResponse],
     summary="List all problems",
-    description="USER + PROBLEM_SETTER - Get minimal problem list with solved status"
+    description="Get minimal problem list with solved status"
 )
 async def list_problems(
     current_user = Depends(get_current_user),
@@ -166,8 +170,8 @@ async def get_problem_detail(
     response_model=TestCaseResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Add a test case",
-    description="PROBLEM_SETTER only - Add a test case to a problem",
-    dependencies=[Depends(get_current_user_with_scopes(["PROBLEM_SETTER"]))]
+    description="Add a test case to a problem",
+    dependencies=[Depends(get_current_user)]
 )
 async def add_test_case(
     problem_id: int,
@@ -193,8 +197,8 @@ async def add_test_case(
     "/test-cases/{test_case_id}",
     response_model=MessageResponse,
     summary="Delete a test case",
-    description="PROBLEM_SETTER only - Delete a test case from a problem",
-    dependencies=[Depends(get_current_user_with_scopes(["PROBLEM_SETTER"]))]
+    description="Delete a test case from a problem",
+    dependencies=[Depends(get_current_user)]
 )
 async def delete_test_case(
     test_case_id: int,
@@ -218,8 +222,8 @@ async def delete_test_case(
     "/test-cases/{test_case_id}",
     response_model=TestCaseResponse,
     summary="Update a test case",
-    description="PROBLEM_SETTER only - Update a test case in a problem",
-    dependencies=[Depends(get_current_user_with_scopes(["PROBLEM_SETTER"]))]
+    description="Update a test case in a problem",
+    dependencies=[Depends(get_current_user)]
 )
 async def update_test_case(
     test_case_id: int,
@@ -237,33 +241,47 @@ async def update_test_case(
     return TestCaseService.update_test_case(db, test_case_id, test_case_update, current_user.id)
 
 
+
+
+
+
 # ============================================================================
-# 8️⃣ UPLOAD EDITORIAL PDF (POST /problems/{problem_id}/editorial)
+# 1️⃣1️⃣ UPLOAD AND INGEST PDF FOR RAG (POST /problems/{problem_id}/editorial/pdf)
 # ============================================================================
 
 @router.post(
-    "/{problem_id}/editorial",
+    "/{problem_id}/editorial/pdf",
     response_model=MessageResponse,
     status_code=status.HTTP_200_OK,
-    summary="Upload editorial PDF for a problem",
-    description="PROBLEM_SETTER only - Upload editorial PDF solution for a problem",
-    dependencies=[Depends(get_current_user_with_scopes(["PROBLEM_SETTER"]))]
+    summary="Upload PDF editorial, store in Cloudinary, and ingest into knowledge base",
+    description="Upload a PDF file, save it to Cloudinary, and ingest it into Chroma for RAG",
+    dependencies=[Depends(get_current_user)]
 )
-async def upload_editorial(
+async def upload_and_ingest_pdf(
     problem_id: int,
     file: UploadFile = File(...),
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Upload an editorial PDF for a problem (problem creator only).
+    Upload a PDF file, store in Cloudinary, and ingest into Chroma vector DB.
+    
+    This endpoint:
+    1. Validates the file is a PDF
+    2. Uploads it to Cloudinary
+    3. Saves the Cloudinary URL to problem editorial_url_link
+    4. Saves PDF temporarily
+    5. Converts PDF to Markdown
+    6. Fixes markdown headers
+    7. Splits by headers
+    8. Uploads chunks to Chroma with problem_id metadata
     
     Parameters:
-        - problem_id: Problem ID to attach editorial to
+        - problem_id: Problem ID to attach PDF to
         - file: PDF file to upload
     
     Returns:
-        - Success message with editorial URL
+        - Success message with PDF URL and chunk count
     """
     # Verify file is PDF
     if file.content_type not in ["application/pdf"]:
@@ -275,45 +293,55 @@ async def upload_editorial(
     # Read file content
     content = await file.read()
     
-    # Upload to Cloudinary
+    # Step 1: Upload to Cloudinary
     try:
         result = await upload_pdf_to_cloudinary(content, file.filename)
         pdf_url = result["url"]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to upload PDF: {str(e)}"
+            detail=f"Failed to upload PDF to Cloudinary: {str(e)}"
         )
     
-    # Update problem with editorial URL
-    return ProblemService.update_editorial(db, problem_id, pdf_url, current_user.id)
-
-
-# ============================================================================
-# 9️⃣ DELETE EDITORIAL PDF (DELETE /problems/{problem_id}/editorial)
-# ============================================================================
-
-@router.delete(
-    "/{problem_id}/editorial",
-    response_model=MessageResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Delete editorial PDF for a problem",
-    description="PROBLEM_SETTER only - Delete editorial PDF solution for a problem",
-    dependencies=[Depends(get_current_user_with_scopes(["PROBLEM_SETTER"]))]
-)
-async def delete_editorial(
-    problem_id: int,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Delete an editorial PDF for a problem (problem creator only).
+    # Step 2: Save PDF URL to problem editorial_url_link
+    try:
+        editorial_result = ProblemService.update_editorial(db, problem_id, pdf_url, current_user.id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save editorial link: {str(e)}"
+        )
     
-    Parameters:
-        - problem_id: Problem ID to delete editorial from
+    # Step 3: Ingest PDF into Chroma for RAG
+    temp_dir = tempfile.mkdtemp()
+    temp_file_path = os.path.join(temp_dir, file.filename)
     
-    Returns:
-        - Success message
-    """
-    return ProblemService.delete_editorial(db, problem_id, current_user.id)
+    try:
+        # Save uploaded file temporarily
+        with open(temp_file_path, 'wb') as f:
+            f.write(content)
+        
+        # Ingest PDF into Chroma
+        from app.utils.ingestion_pdf import ingest_pdf_from_file
+        ingest_result = ingest_pdf_from_file(temp_file_path, problem_id)
+        
+        chunks_count = ingest_result.get("chunks_uploaded", 0)
+        
+        return {
+            "message": f"PDF uploaded successfully. Stored in knowledge base with {chunks_count} indexed sections. View at: {pdf_url}"
+        }
+        
+    except Exception as e:
+        # PDF was uploaded to Cloudinary but ingestion failed - still return success
+        return {
+            "message": f"PDF uploaded successfully to Cloudinary, but indexing had issues. URL: {pdf_url}"
+        }
+    finally:
+        # Clean up temporary file
+        try:
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+            os.rmdir(temp_dir)
+        except:
+            pass
 

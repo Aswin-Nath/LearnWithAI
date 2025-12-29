@@ -14,3 +14,6 @@ python-dotenv
 redis
 docker
 cloudinary
+langgraph
+langchain
+langchain-openai

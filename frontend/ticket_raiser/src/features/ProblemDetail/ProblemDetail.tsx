@@ -2,7 +2,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Navbar } from '../../components/Navbar';
+import { Navbar } from '../../components/Navbar/Navbar';
+// import { PDFViewer } from '../PDFViewer/PDFViewer';
+import { ChatPanel } from '../ChatPanel/ChatPanel';
+import { PDFViewer } from '../PDFViewer/PDFViewer';
 import { apiFetch } from '../../core/api';
 import './ProblemDetail.css';
 
@@ -363,9 +366,9 @@ export const ProblemDetailPage: React.FC = () => {
                 {problem.editorial_url_link ? (
                   <>
                     <h2>Editorial Solution</h2>
-                    <a href={problem.editorial_url_link} target="_blank" rel="noopener noreferrer" className="editorial-link">
-                      📄 View Full Editorial Solution
-                    </a>
+                    <div className="pdf-viewer-wrapper">
+                      <PDFViewer url={problem.editorial_url_link} />
+                    </div>
                   </>
                 ) : (
                   <div className="no-editorial">
@@ -527,42 +530,15 @@ export const ProblemDetailPage: React.FC = () => {
               />
             </div>
 
-            {/* Vertical Divider between Code and Chat */}
-            {showChat && (
-              <div
-                className="editor-chat-divider"
-                onMouseDown={() => setIsDraggingEditor(true)}
-              />
-            )}
-
             {/* Chat Section */}
             {showChat && (
-              <div className="chat-section" style={{ width: `${100 - editorWidth}%` }}>
-                <div className="chat-header">
-                  <h3>💡 AI Chat Assistant</h3>
-                  <button 
-                    className="chat-close-btn"
-                    onClick={() => setShowChat(false)}
-                    title="Hide chat (Alt+H)"
-                    aria-label="Close chat"
-                  >
-                    <span>×</span>
-                  </button>
-                </div>
-                <div className="chat-messages">
-                  <div className="chat-message system">
-                    <p>Chat with AI assistant for this problem!</p>
-                  </div>
-                </div>
-                <div className="chat-input-area">
-                  <input 
-                    type="text" 
-                    placeholder="Ask for help..." 
-                    disabled
-                  />
-                  <button disabled>Send</button>
-                </div>
-              </div>
+              <ChatPanel
+                problemId={parseInt(id!)}
+                userCode={code}
+                width={`${100 - editorWidth}%`}
+                onDragStart={() => setIsDraggingEditor(true)}
+                onCloseChat={() => setShowChat(false)}
+              />
             )}
           </div>
         </div>
