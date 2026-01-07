@@ -138,3 +138,23 @@ class Submission(Base):
         CheckConstraint("test_cases_passed >= 0 AND test_cases_passed <= total_test_cases", name="submissions_check"),
         UniqueConstraint("user_id", "problem_id", "created_at", name="idx_submissions_user_problem_time"),
     )
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    problem_id = Column(Integer, ForeignKey("problems.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String(20), nullable=False)  # 'user' or 'assistant'
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    # Relationships
+    user = relationship("User")
+    problem = relationship("Problem")
+
+    __table_args__ = (
+        CheckConstraint("role IN ('user', 'assistant')", name="chat_messages_role_check"),
+        UniqueConstraint("user_id", "problem_id", "created_at", name="idx_chat_messages_user_problem_time"),
+    )

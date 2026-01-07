@@ -2,7 +2,6 @@ import os
 import sys
 import logging
 from typing import TypedDict, Optional, Literal, NotRequired, Annotated, List
-from urllib.parse import quote_plus
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
@@ -10,7 +9,6 @@ from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-from sqlalchemy import create_engine, text
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -20,6 +18,7 @@ formatter = logging.Formatter('[%(levelname)s] %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
@@ -27,68 +26,11 @@ from rag_layer import (
     build_prompt,
     retriever,
 )
-
 load_dotenv()
 
 GROQ_KEY = os.getenv("GROQ_API_KEY")
 llm = ChatGroq(api_key=GROQ_KEY, model_name="llama-3.1-8b-instant", temperature=0)
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = quote_plus(os.getenv("POSTGRES_PASSWORD"))
-POSTGRES_HOST = os.getenv("POSTGRES_HOST")
-POSTGRES_DB = os.getenv("POSTGRES_DB")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "1024")
-DATABASE_URL = (
-    f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}"
-    f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-)
-url = DATABASE_URL
-engine = create_engine(url)
 
-def get_problem_by_id(problem_id: int):
-    with engine.connect() as conn:
-        result = conn.execute(
-            text("""
-                SELECT 
-                    id, 
-                    title, 
-                    description, 
-                    constraints, 
-                    difficulty, 
-                    time_limit_ms
-                FROM problems 
-                WHERE id = :pid
-            """),
-            {"pid": problem_id}
-        )
-        row = result.fetchone()
-        if not row:
-            return None
-
-        test_cases_result = conn.execute(
-            text("""
-                SELECT input_data, expected_output
-                FROM test_cases
-                WHERE problem_id = :pid
-                  AND is_sample = true
-                ORDER BY id
-                LIMIT 3
-            """),
-            {"pid": problem_id}
-        )
-
-        sample_test_cases = [
-            {"input": tc.input_data, "expected_output": tc.expected_output}
-            for tc in test_cases_result.fetchall()
-        ]
-        return {
-            "id": row.id,
-            "title": row.title,
-            "description": row.description,
-            "constraints": row.constraints,
-            "difficulty": row.difficulty,
-            "time_limit": row.time_limit_ms,
-            "sample_test_cases": sample_test_cases
-        }
 
 # STATE
 
@@ -96,7 +38,9 @@ class InputState(TypedDict):
     user_query: NotRequired[Optional[str]]
     user_code: NotRequired[Optional[str]]
     problem_id: int
+    problem: NotRequired[dict]
     user_intent: NotRequired[Optional[str]]
+    previous_messages: NotRequired[Optional[List[BaseMessage]]]  # NEW: Passed from API
 
 class GraphState(TypedDict):
     user_intent: str
@@ -142,10 +86,7 @@ def filter_by_section(chunks: List[dict], allowed_sections: List[str]) -> List[d
 
 # NODES
 
-def retrieve_and_filter(state: GraphState) -> dict:
-    """Combined retrieve + filter operation."""
-    logger.info(f"[RAG] Retrieving & filtering for query: {state['user_query'][:50]}...")
-    
+def retrieve_and_filter(state: GraphState) -> dict:    
     problem_id = state["problem_id"]
     user_query = state["user_query"]
     user_code = state.get("user_code", "")
@@ -157,13 +98,11 @@ def retrieve_and_filter(state: GraphState) -> dict:
     try:
         # RETRIEVE
         chunks = retriever.retrieve(problem_id=problem_id, query=query_text, k=k)
-        logger.info(f"[RAG] ✓ Retrieved {len(chunks)} chunks (k={k})")
         
         # FILTER
         allowed_sections = state.get("sections")
         
         if not chunks or not allowed_sections:
-            logger.warning(f"[RAG] No chunks or sections, returning empty")
             return {"filtered_chunks": []}
         
         filtered = filter_by_section(chunks, allowed_sections)
@@ -172,17 +111,13 @@ def retrieve_and_filter(state: GraphState) -> dict:
         if intent == "clarification_request":
             filtered = filtered[:2]
         
-        logger.info(f"[RAG] ✓ Filtered to {len(filtered)} chunks (sections: {allowed_sections})")
         return {"filtered_chunks": filtered}
         
     except Exception as e:
         logger.error(f"[RAG] ✗ Retrieval/Filter failed: {str(e)}", exc_info=True)
         return {"filtered_chunks": []}
 
-def build_prompt_node(state: GraphState) -> dict:
-    """Assemble final prompt with context."""
-    logger.debug(f"[PROMPT] Building prompt for intent: {state['user_intent']}")
-    
+def build_prompt_node(state: GraphState) -> dict:    
     intent = state["user_intent"]
     problem = state.get("problem", {})
     user_query = state["user_query"]
@@ -201,49 +136,30 @@ def build_prompt_node(state: GraphState) -> dict:
             conversation_context=messages,
             sample_test_cases=samples
         )
-        logger.debug(f"[PROMPT] ✓ Prompt built ({len(prompt_text)} chars)")
         return {"prompt_text": prompt_text}
     except Exception as e:
         logger.error(f"[PROMPT] ✗ Prompt building failed: {str(e)}", exc_info=True)
         return {"prompt_text": ""}
 
-def invoke_llm_node(state: GraphState) -> dict:
-    """LLM execution."""
-    logger.info(f"[LLM] Invoking LLM for intent: {state['user_intent']}")
-    
+def invoke_llm_node(state: GraphState) -> dict:    
     prompt_text = state.get("prompt_text", "")
     if not prompt_text:
-        logger.error(f"[LLM] Empty prompt, cannot invoke")
         return {"answer": "Error: Empty prompt"}
     
     try:
         # Use message objects for role separation and tool compatibility
         response = llm.invoke([HumanMessage(content=prompt_text)])
         answer = response.content
-        logger.info(f"[LLM] ✓ LLM response ({len(answer)} chars)")
         return {"answer": answer}
     except Exception as e:
         logger.error(f"[LLM] ✗ LLM invocation failed: {str(e)}", exc_info=True)
         return {"answer": f"Error generating response: {str(e)}"}
 
-def update_memory(state: GraphState) -> dict:
-    """Update conversation memory with delta message."""
-    logger.debug(f"[MEMORY] Updating conversation memory")
-    
-    answer = state.get("answer", "")
-    if answer:
-        logger.debug(f"[MEMORY] ✓ Added AI message to history")
-        return {"messages": [AIMessage(content=answer)]}
-    return {}
 
-# GENERAL CONCEPT SUBGRAPH (prompt → llm → memory)
 
-def general_concept_prompt(state: GraphState) -> dict:
-    """Build prompt for standalone concept questions using build_prompt."""
-    
+def general_concept_prompt(state: GraphState) -> dict:    
     user_query = state["user_query"]
     messages = state.get("messages", [])
-    
     try:
         prompt_text = build_prompt(
             intent="general_concept_help",
@@ -260,60 +176,44 @@ def general_concept_prompt(state: GraphState) -> dict:
         return {"prompt_text": ""}
 
 def general_concept_subgraph() -> StateGraph:
-    """Fast path: prompt → llm → memory."""
     graph = StateGraph(GraphState, output_nodes=["answer"])
     
     graph.add_node("build_prompt", general_concept_prompt)
     graph.add_node("invoke_llm", invoke_llm_node)
-    graph.add_node("update_memory", update_memory)
     
     graph.add_edge("build_prompt", "invoke_llm")
-    graph.add_edge("invoke_llm", "update_memory")
-    graph.add_edge("update_memory", END)
+    graph.add_edge("invoke_llm", END)
     
     graph.set_entry_point("build_prompt")
     
     return graph.compile()
 
-# RAG PIPELINE SUBGRAPH (Retrieve → Filter → Prompt → LLM → Memory)
-
 def rag_subgraph() -> StateGraph:
-    """RAG pipeline: retrieve_and_filter → build_prompt → invoke_llm → update_memory."""
     graph = StateGraph(GraphState, output_nodes=["answer"])
     
     graph.add_node("retrieve_and_filter", retrieve_and_filter)
     graph.add_node("build_prompt", build_prompt_node)
     graph.add_node("invoke_llm", invoke_llm_node)
-    graph.add_node("update_memory", update_memory)
     
 
     graph.add_edge("retrieve_and_filter", "build_prompt")
     graph.add_edge("build_prompt", "invoke_llm")
-    graph.add_edge("invoke_llm", "update_memory")
-    graph.add_edge("update_memory", END)
+    graph.add_edge("invoke_llm", END)
     
     graph.set_entry_point("retrieve_and_filter")
     
     return graph.compile()
 
-# SETUP NODE
 
 def setup_node(state: InputState) -> GraphState:
-    """
-    Initialize the graph with fresh data from the user's input.
-    Creates a complete GraphState with all required fields initialized.
-    Applies intent-specific retrieval policy immediately.
-    """
-    
-    
-    problem = get_problem_by_id(state["problem_id"])    
+    problem = state.get("problem")
     sample_test_cases = problem.get("sample_test_cases", []) if problem else []
     user_query = state.get("user_query") or ""
     user_code = state.get("user_code") or ""
     problem_id = state.get("problem_id", 0)
     user_intent = state.get("user_intent", "")
+    previous_messages = state.get("previous_messages") or []  # NEW: From API layer
     
-    # Clean up values by stripping whitespace and handling invalid types
     if not isinstance(user_query, str):
         user_query = ""
     else:
@@ -324,9 +224,8 @@ def setup_node(state: InputState) -> GraphState:
     else:
         user_code = user_code.strip()
     
+    messages = list(previous_messages) if previous_messages else []
     
-    messages = []
-
     if user_query:
         messages.append(HumanMessage(content=user_query))
 
@@ -346,7 +245,6 @@ def setup_node(state: InputState) -> GraphState:
         retrieval_k = 5
         sections = ["definition", "constraints"]
     
-    
     return_state = {
         "user_intent": user_intent,
         "user_query": user_query,
@@ -360,12 +258,9 @@ def setup_node(state: InputState) -> GraphState:
         "sections": sections
     }
     
-    logger.info(f"[SETUP] Graph state initialized with {len(messages)} messages, intent={user_intent}")
     
     return return_state
 
-
-# INTENT DECISION
 
 class IntentDecision(BaseModel):
     intent: Literal[
@@ -543,30 +438,22 @@ Then respond with ONLY the intent name: general_concept_help, clarification_requ
         # Invoke structured LLM
         result: IntentDecision = (prompt | structured_llm).invoke({})
         intent = result.intent
-        confidence = result.confidence
-        
-        logger.info(f"[CLASSIFY] LLM Response - Intent: '{intent}' (confidence: {confidence})")
         
     except Exception as e:
         logger.error(f"[CLASSIFY] Classification error: {str(e)}", exc_info=True)
         intent = "how_to_solve_this"
-        logger.warning(f"[CLASSIFY] Falling back to default intent: '{intent}'")
+        logger.warning(f"[CLASSIFY] Decision: Falling back to default intent '{intent}' due to error")
         result = IntentDecision(intent=intent, confidence=0.0)
 
     return_dict = {
         **state,
         "user_intent": result.intent
     }
-    logger.info(f"[CLASSIFY] Final intent decision: '{result.intent}'")
     return return_dict
 
 
-# MAIN GRAPH
-
 def route_by_intent(state: GraphState) -> str:
-    """Route to RAG pipeline or direct concept path based on intent."""
     intent = state.get("user_intent", "").strip()
-    logger.info(f"[ROUTE] Routing by intent: '{intent}'")
     if intent == "general_concept_help":
         return "general_concept_help"
     else:
@@ -601,20 +488,17 @@ build.add_edge("general_concept_help", END)
 graph = build.compile()
 
 def run_graph(input_dict: dict) -> dict:
-    """
-    Run the LangGraph and return the response with intent.
-    """
     try:
         result = graph.invoke(input_dict)
         answer = result.get("answer", "I couldn't generate a response. Please try again.")
         intent = result.get("user_intent", "")
-        logger.info(f"[GRAPH] Execution completed - Intent: {intent}")
+        logger.info(f"[GRAPH] Decision: Execution completed successfully - Intent: {intent}")
         return {
             "answer": answer,
             "intent": intent
         }
     except Exception as e:
-        logger.error(f"[GRAPH] Execution failed: {str(e)}")
+        logger.error(f"[GRAPH] Decision: Execution failed with error - {str(e)}")
         return {
             "answer": f"Error: {str(e)}",
             "intent": ""

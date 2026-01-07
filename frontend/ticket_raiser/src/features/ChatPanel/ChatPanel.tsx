@@ -210,6 +210,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         }),
       });
 
+      // Wait for 3 seconds before showing result
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
       const chatResponse = response.data || response;
 
       // Add assistant message to chat
@@ -306,26 +309,30 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         <div className="chat-input-area">
           {/* Message Input */}
           <div className="message-input-row">
-            <input
-              type="text"
-              className="chat-input"
+            <textarea
+              className="chat-input chat-textarea"
               placeholder={defaultPlaceholder}
               value={chatInput}
               onChange={(e) => onChatInputChange(e.target.value)}
               onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && !chatLoading) {
+                if (e.key === 'Enter' && e.ctrlKey && !chatLoading) {
                   handleSendMessage();
                 }
               }}
               disabled={chatLoading}
+              rows={4}
             />
             <button
               className="chat-send-btn"
               onClick={handleSendMessage}
               disabled={!chatInput.trim() || chatLoading}
-              title="Send message"
+              title="Send message (Ctrl+Enter)"
             >
-              {chatLoading ? '...' : 'Send'}
+              {chatLoading ? (
+                <span className="btn-spinner"></span>
+              ) : (
+                'Send'
+              )}
             </button>
           </div>
         </div>

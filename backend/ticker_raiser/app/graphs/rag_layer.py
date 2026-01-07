@@ -310,15 +310,16 @@ def build_prompt(
     history_text = ""
     if conversation_context:
         history_str = []
-        relevant_history = conversation_context[:-1][-10:]
-        
-        for msg in relevant_history:
+        # Include ALL messages in the context (which already includes current query from setup_node)
+        # This ensures the LLM sees the full conversation thread
+        for msg in conversation_context:
             if isinstance(msg, HumanMessage):
                 history_str.append(f"User: {msg.content}")
             elif isinstance(msg, AIMessage):
                 history_str.append(f"AI: {msg.content}")
         
         history_text = "\n".join(history_str)
+        print(f"[PROMPT] ✓ Including {len(conversation_context)} messages in conversation history for context")
     
     #  DEDUPLICATE CHUNKS 
     seen_content = set()
