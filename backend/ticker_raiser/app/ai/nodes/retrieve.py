@@ -49,10 +49,9 @@ def retrieve_and_filter(state: GraphState) -> dict:
         chunks = retriever.retrieve(problem_id=problem_id, query=query_text, k=k)
         
         allowed_sections = state.get("sections")
-        
+        print("CHUNKS",chunks,allowed_sections)
         if not chunks or not allowed_sections:
             return {"filtered_chunks": []}
-        
         filtered = filter_by_section(chunks, allowed_sections)
         
         if intent == "clarification_request":

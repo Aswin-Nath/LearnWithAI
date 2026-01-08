@@ -3,9 +3,8 @@ Authentication service with business logic following LuxuryStay patterns.
 """
 from sqlalchemy.orm import Session
 from typing import Optional, Tuple
-from datetime import timedelta, datetime
+from datetime import datetime
 from dataclasses import dataclass
-import uuid
 import logging
 
 from app.crud.auth import UserCRUD, SessionCRUD, BlacklistedTokenCRUD
@@ -26,7 +25,6 @@ from app.core.exceptions import (
     InvalidTokenException,
     TokenBlacklistedException,
     SessionExpiredException,
-    NotAuthenticatedException
 )
 from app.models.models import User
 from app.schemas.auth import TokenResponse

@@ -8,7 +8,7 @@ def setup_node(state: InputState) -> GraphState:
     user_code = state.get("user_code") or ""
     problem_id = state.get("problem_id", 0)
     user_intent = state.get("user_intent", "")
-    previous_messages = state.get("previous_messages") or []  # NEW: From API layer
+    previous_messages = state.get("previous_messages") or []  
     
     if not isinstance(user_query, str):
         user_query = ""

@@ -7,6 +7,13 @@ from app.utils.text_processor import (
     WhitespaceNormalizationMode,
 )
 from typing import Optional, List
+from enum import Enum
+
+class WhitespaceNormalizationMode(Enum):
+    """Whitespace normalization strategies"""
+    STRICT = "strict"  # Only normalize line endings, preserve internal spaces
+    TRIM_LINES = "trim_lines"  # Trim trailing spaces from each line
+    COMPACT = "compact"  # Normalize all consecutive spaces
 
 
 # Problem CRUD Operations

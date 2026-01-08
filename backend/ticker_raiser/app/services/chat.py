@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import logging
 
-from app.crud.auth import ChatMessageCRUD
+from app.crud.chat import ChatMessageCRUD
 from app.models.models import ChatMessage
 
 logger = logging.getLogger(__name__)

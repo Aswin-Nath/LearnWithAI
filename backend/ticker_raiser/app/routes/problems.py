@@ -17,7 +17,6 @@ from app.schemas.problem import (
 )
 from app.services.problems import ProblemService, TestCaseService
 from app.utils.pdf_upload_util import upload_pdf_to_cloudinary
-from app.utils.md_upload_util import upload_markdown_editorial
 from app.utils.ingestion_pdf import ingest_pdf_from_file
 import tempfile
 import os
@@ -256,17 +255,14 @@ async def upload_and_ingest_pdf(
     Returns:
         - Success message with PDF URL and chunk count
     """
-    # Verify file is PDF
     if file.content_type not in ["application/pdf"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only PDF files are allowed"
         )
     
-    # Read file content
     content = await file.read()
     
-    # Step 1: Upload to Cloudinary
     try:
         result = await upload_pdf_to_cloudinary(content, file.filename)
         pdf_url = result["url"]
@@ -276,7 +272,6 @@ async def upload_and_ingest_pdf(
             detail=f"Failed to upload PDF to Cloudinary: {str(e)}"
         )
     
-    # Step 2: Save PDF URL to problem editorial_url_link
     try:
         editorial_result = ProblemService.update_editorial(db, problem_id, pdf_url, current_user.id)
     except Exception as e:
@@ -285,15 +280,12 @@ async def upload_and_ingest_pdf(
             detail=f"Failed to save editorial link: {str(e)}"
         )
     
-    # Step 3: Ingest PDF into Chroma for RAG
     temp_dir = tempfile.mkdtemp()
     temp_file_path = os.path.join(temp_dir, file.filename)
     
     try:
-        # Save uploaded file temporarily
         with open(temp_file_path, 'wb') as f:
             f.write(content)
-        # Ingest PDF into Chroma
         ingest_result = ingest_pdf_from_file(temp_file_path, problem_id)
         chunks_count = ingest_result.get("chunks_uploaded", 0)
         return {
@@ -301,12 +293,10 @@ async def upload_and_ingest_pdf(
         }
         
     except Exception as e:
-        # PDF was uploaded to Cloudinary but ingestion failed - still return success
         return {
             "message": f"PDF uploaded successfully to Cloudinary, but indexing had issues. URL: {pdf_url}"
         }
     finally:
-        # Clean up temporary file
         try:
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)

@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 from typing import TypedDict, Optional, Literal, NotRequired, Annotated, List
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
@@ -9,6 +10,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
+from sqlalchemy import create_engine, text
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -38,9 +40,7 @@ class InputState(TypedDict):
     user_query: NotRequired[Optional[str]]
     user_code: NotRequired[Optional[str]]
     problem_id: int
-    problem: NotRequired[dict]
     user_intent: NotRequired[Optional[str]]
-    previous_messages: NotRequired[Optional[List[BaseMessage]]]  # NEW: Passed from API
 
 class GraphState(TypedDict):
     user_intent: str
@@ -60,6 +60,131 @@ class GraphState(TypedDict):
 class OutputState(TypedDict):
     answer: str
     intent:str
+
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = quote_plus(os.getenv("POSTGRES_PASSWORD"))
+POSTGRES_HOST = os.getenv("POSTGRES_HOST")
+POSTGRES_DB = os.getenv("POSTGRES_DB")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "1024")
+DATABASE_URL = (
+    f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}"
+    f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+)
+url = DATABASE_URL
+engine = create_engine(url)
+
+def estimate_tokens(text: str) -> int:
+    """
+    Rough token estimator.
+    1 token ≈ 4 characters (safe heuristic).
+    """
+    return max(1, len(text) // 4)
+
+
+def trim_messages_to_token_limit(
+    messages: List[BaseMessage],
+    max_tokens: int
+) -> List[BaseMessage]:
+    """
+    Keeps the MOST RECENT messages within token budget.
+    """
+    trimmed: List[BaseMessage] = []
+    used_tokens = 0
+
+    # iterate from latest → oldest
+    for msg in reversed(messages):
+        msg_tokens = estimate_tokens(msg.content)
+        if used_tokens + msg_tokens > max_tokens:
+            break
+        trimmed.append(msg)
+        used_tokens += msg_tokens
+
+    return list(reversed(trimmed))
+
+
+def get_problem_by_id(problem_id: int):
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("""
+                SELECT 
+                    id, 
+                    title, 
+                    description, 
+                    constraints, 
+                    difficulty, 
+                    time_limit_ms
+                FROM problems 
+                WHERE id = :pid
+            """),
+            {"pid": problem_id}
+        )
+        row = result.fetchone()
+        if not row:
+            return None
+
+        test_cases_result = conn.execute(
+            text("""
+                SELECT input_data, expected_output
+                FROM test_cases
+                WHERE problem_id = :pid
+                  AND is_sample = true
+                ORDER BY id
+                LIMIT 3
+            """),
+            {"pid": problem_id}
+        )
+
+        sample_test_cases = [
+            {"input": tc.input_data, "expected_output": tc.expected_output}
+            for tc in test_cases_result.fetchall()
+        ]
+        return {
+            "id": row.id,
+            "title": row.title,
+            "description": row.description,
+            "constraints": row.constraints,
+            "difficulty": row.difficulty,
+            "time_limit": row.time_limit_ms,
+            "sample_test_cases": sample_test_cases
+        }
+
+def get_previous_messages(
+    user_id: int,
+    problem_id: int,
+    limit: int = 10
+) -> List[BaseMessage]:
+    """
+    DEMO MODE:
+    Fetch last N messages for a user-problem pair and convert
+    them into LangChain message objects.
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT role, content
+                FROM chat_messages
+                WHERE user_id = :uid
+                  AND problem_id = :pid
+                ORDER BY created_at DESC
+                LIMIT :limit
+            """),
+            {
+                "uid": user_id,
+                "pid": problem_id,
+                "limit": limit
+            }
+        ).fetchall()
+
+    messages: List[BaseMessage] = []
+
+    for row in reversed(rows):
+        if row.role == "user":
+            messages.append(HumanMessage(content=row.content))
+        else:
+            messages.append(AIMessage(content=row.content))
+
+    return messages
+
 def filter_by_section(chunks: List[dict], allowed_sections: List[str]) -> List[dict]:
     """
     Filter retrieved chunks to only those matching allowed sections.
@@ -206,13 +331,13 @@ def rag_subgraph() -> StateGraph:
 
 
 def setup_node(state: InputState) -> GraphState:
-    problem = state.get("problem")
-    sample_test_cases = problem.get("sample_test_cases", []) if problem else []
     user_query = state.get("user_query") or ""
     user_code = state.get("user_code") or ""
     problem_id = state.get("problem_id", 0)
+    problem=get_problem_by_id(problem_id)
+    sample_test_cases = problem.get("sample_test_cases", []) if problem else []
     user_intent = state.get("user_intent", "")
-    previous_messages = state.get("previous_messages") or []  # NEW: From API layer
+    previous_messages = get_previous_messages(user_id=1,problem_id=problem_id,limit=8)
     
     if not isinstance(user_query, str):
         user_query = ""
@@ -226,6 +351,11 @@ def setup_node(state: InputState) -> GraphState:
     
     messages = list(previous_messages) if previous_messages else []
     
+    MAX_HISTORY_TOKENS = 1000
+    messages = trim_messages_to_token_limit(
+        previous_messages,
+        max_tokens=MAX_HISTORY_TOKENS
+    )
     if user_query:
         messages.append(HumanMessage(content=user_query))
 
@@ -503,3 +633,4 @@ def run_graph(input_dict: dict) -> dict:
             "answer": f"Error: {str(e)}",
             "intent": ""
         }
+    # vv

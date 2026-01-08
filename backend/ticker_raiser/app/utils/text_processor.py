@@ -186,42 +186,5 @@ def prepare_test_case_for_storage(
     return input_data, expected_output, ""
 
 
-def compare_outputs(actual: str, expected: str, strict: bool = True) -> bool:
-    """
-    Compare actual output with expected output.
-    
-    Args:
-        actual: Actual output from code execution
-        expected: Expected output from test case
-        strict: If False, ignores trailing whitespace differences
-        
-    Returns:
-        True if outputs match according to comparison mode
-    """
-    if strict:
-        return actual == expected
-    else:
-        # Strip trailing whitespace for comparison
-        return actual.rstrip() == expected.rstrip()
 
 
-def get_test_case_statistics(input_data: str, expected_output: str) -> dict:
-    """
-    Get statistics about test case data.
-    
-    Args:
-        input_data: Test input
-        expected_output: Expected output
-        
-    Returns:
-        Dictionary with statistics
-    """
-    return {
-        "input_lines": len(input_data.split('\n')),
-        "input_chars": len(input_data),
-        "input_bytes": len(input_data.encode('utf-8')),
-        "output_lines": len(expected_output.split('\n')),
-        "output_chars": len(expected_output),
-        "output_bytes": len(expected_output.encode('utf-8')),
-        "has_unicode": any(ord(c) > 127 for c in input_data + expected_output),
-    }

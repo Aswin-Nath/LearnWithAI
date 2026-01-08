@@ -18,8 +18,6 @@ import subprocess
 import tempfile
 import shutil
 from pathlib import Path
-
-# Add app to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.database import SessionLocal
@@ -28,18 +26,13 @@ from app.crud.submission import get_submission_by_id
 from app.crud.problem import get_problem_by_id, get_test_cases_by_problem
 from app.services.submission import SubmissionService
 
-# Setup logging
 logger = get_logger("judge_worker")
-
-# Redis client
 redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
-# Docker image for Python
 DOCKER_IMAGE = "python:3.12-slim"
 
-# Configuration
-MAX_DOCKER_TIMEOUT = 30  # Maximum timeout for any Docker operation
-CLEANUP_RETRY_DELAY = 1  # Seconds to wait before retry cleanup
+MAX_DOCKER_TIMEOUT = 30
+CLEANUP_RETRY_DELAY = 1 
 
 
 def cleanup_docker_container(container_id: str, max_retries: int = 3) -> bool:
@@ -55,7 +48,6 @@ def cleanup_docker_container(container_id: str, max_retries: int = 3) -> bool:
     """
     for attempt in range(max_retries):
         try:
-            # First try to stop gracefully
             subprocess.run(
                 ["docker", "stop", "-t", "2", container_id],
                 capture_output=True,
@@ -63,7 +55,6 @@ def cleanup_docker_container(container_id: str, max_retries: int = 3) -> bool:
                 check=False
             )
             
-            # Then force remove
             result = subprocess.run(
                 ["docker", "rm", "-f", container_id],
                 capture_output=True,
@@ -75,7 +66,6 @@ def cleanup_docker_container(container_id: str, max_retries: int = 3) -> bool:
                 logger.debug(f"Cleaned up container {container_id}")
                 return True
             
-            # Container might not exist (already cleaned up)
             if "No such container" in result.stderr.decode():
                 return True
             
@@ -110,7 +100,6 @@ def run_docker_judge(
         }
     """
     time_limit_sec = time_limit_ms / 1000
-    # Add buffer time for Docker overhead (max 5s)
     docker_timeout = min(int(time_limit_sec) + 5, MAX_DOCKER_TIMEOUT)
     
     temp_dir = None
@@ -119,18 +108,14 @@ def run_docker_judge(
     proc = None
     
     try:
-        # Create temp directory for this execution
         temp_dir = tempfile.mkdtemp(prefix="judge_")
         temp_file = os.path.join(temp_dir, "solution.py")
         
-        # Write code to temp file
         with open(temp_file, "w", encoding="utf-8") as f:
             f.write(code)
         
-        # Generate unique container name for tracking
         container_name = f"judge_{int(time.time() * 1000)}_{os.getpid()}"
         
-        # Docker command with proper isolation
         docker_cmd = [
             "docker", "run",
             "--name", container_name,  # Named for cleanup tracking
@@ -151,7 +136,6 @@ def run_docker_judge(
         
         logger.debug(f"Starting container: {container_name}")
         
-        # Start process
         proc = subprocess.Popen(
             docker_cmd,
             stdin=subprocess.PIPE,
@@ -162,7 +146,6 @@ def run_docker_judge(
         
         container_id = container_name
         
-        # Communicate with timeout
         start_time = time.time()
         try:
             stdout, stderr = proc.communicate(
@@ -174,7 +157,6 @@ def run_docker_judge(
             logger.debug(f"Execution completed in {execution_time:.2f}s")
         
         except subprocess.TimeoutExpired:
-            # Timeout - kill process
             logger.warning(f"TIMEOUT for {container_name} after {docker_timeout}s")
             
             try:
@@ -183,7 +165,6 @@ def run_docker_judge(
             except:
                 pass
             
-            # Ensure container cleanup
             cleanup_docker_container(container_name)
             
             return {
@@ -194,11 +175,9 @@ def run_docker_judge(
                 "timed_out": True
             }
         
-        # Check for runtime errors
         if proc.returncode != 0:
-            error_msg = stderr.strip()[:500]  # Truncate long errors
+            error_msg = stderr.strip()[:500]  
             
-            # Classify error type
             error_type = "RUNTIME"
             if "SyntaxError" in stderr:
                 error_type = "SYNTAX_ERROR"
@@ -215,7 +194,6 @@ def run_docker_judge(
             elif "MemoryError" in stderr:
                 error_type = "MEMORY_LIMIT"
             elif "timed out" in stderr.lower():
-                # Caught by timeout command
                 return {
                     "passed": False,
                     "actual_output": "",
@@ -253,7 +231,6 @@ def run_docker_judge(
     except Exception as e:
         logger.error(f"Judge error: {e}", exc_info=True)
         
-        # Try to cleanup container if it was created
         if container_id:
             cleanup_docker_container(container_id)
         
@@ -266,7 +243,6 @@ def run_docker_judge(
         }
     
     finally:
-        # Cleanup process
         if proc and proc.poll() is None:
             try:
                 proc.kill()
@@ -274,7 +250,6 @@ def run_docker_judge(
             except:
                 pass
         
-        # Cleanup temp directory
         if temp_dir and os.path.exists(temp_dir):
             try:
                 shutil.rmtree(temp_dir, ignore_errors=True)
@@ -291,7 +266,6 @@ def judge_submission(submission_id: int) -> bool:
     db = SessionLocal()
     
     try:
-        # Fetch submission
         submission = get_submission_by_id(db, submission_id)
         if not submission:
             logger.error(f"Submission {submission_id} not found")
@@ -299,13 +273,11 @@ def judge_submission(submission_id: int) -> bool:
         
         logger.info(f"Judging submission {submission_id} for problem {submission.problem_id}")
         
-        # Fetch problem
         problem = get_problem_by_id(db, submission.problem_id)
         if not problem:
             logger.error(f"Problem {submission.problem_id} not found")
             return False
         
-        # Fetch test cases
         test_cases = get_test_cases_by_problem(db, problem.id)
         if not test_cases:
             logger.error(f"No test cases for problem {problem.id}")
@@ -313,7 +285,6 @@ def judge_submission(submission_id: int) -> bool:
         
         logger.info(f"Running {len(test_cases)} test cases (time limit: {problem.time_limit_ms}ms)")
         
-        # Judge each test case
         passed_count = 0
         final_status = "ACCEPTED"
         
@@ -343,7 +314,6 @@ def judge_submission(submission_id: int) -> bool:
                 if final_status == "ACCEPTED":
                     final_status = "WRONG_ANSWER"
         
-        # Update submission in DB
         SubmissionService.update_submission_after_judge(
             db=db,
             submission_id=submission_id,
@@ -357,7 +327,6 @@ def judge_submission(submission_id: int) -> bool:
     except Exception as e:
         logger.error(f"Error judging submission {submission_id}: {e}", exc_info=True)
         
-        # Update submission with error status
         try:
             SubmissionService.update_submission_after_judge(
                 db=db,
@@ -377,7 +346,6 @@ def judge_submission(submission_id: int) -> bool:
 def cleanup_orphaned_containers():
     """Clean up any orphaned judge containers from previous runs."""
     try:
-        # Find containers with judge prefix
         result = subprocess.run(
             ["docker", "ps", "-a", "--filter", "name=judge_", "--format", "{{.Names}}"],
             capture_output=True,
@@ -400,7 +368,6 @@ def worker_loop():
     """Main worker loop - blocks on Redis BRPOP"""
     logger.info("Judge worker starting...")
     
-    # Check Redis connection
     try:
         redis_client.ping()
         logger.info("✓ Redis connected")
@@ -409,7 +376,6 @@ def worker_loop():
         logger.error("Make sure Redis is running: docker run -d --name redis -p 6379:6379 redis:7-alpine")
         sys.exit(1)
     
-    # Check Docker availability
     try:
         result = subprocess.run(
             ["docker", "info"],
@@ -425,14 +391,12 @@ def worker_loop():
         logger.error(f"✗ Docker check failed: {e}")
         sys.exit(1)
     
-    # Cleanup any orphaned containers from previous runs
     cleanup_orphaned_containers()
     
     logger.info("✓ Worker ready - listening for submissions...")
     
     while True:
         try:
-            # BRPOP blocks until submission arrives (timeout=0 means infinite)
             result = redis_client.brpop("submissions_queue", timeout=0)
             
             if result:
@@ -441,7 +405,6 @@ def worker_loop():
                 
                 judge_submission(submission_id)
                 
-                # Small delay to prevent CPU spinning
                 time.sleep(0.1)
         
         except KeyboardInterrupt:

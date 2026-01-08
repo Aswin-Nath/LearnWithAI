@@ -3,7 +3,6 @@ from typing import Optional
 from datetime import datetime
 
 
-# Register Request
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
@@ -11,18 +10,13 @@ class RegisterRequest(BaseModel):
     role: Optional[str] = Field(default="USER", pattern="^(USER|PROBLEM_SETTER)$")
 
 
-# Login Request
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=1)
 
 
-# Refresh Token Request
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
 
 
-# Token Response
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "Bearer"
@@ -42,18 +36,6 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
-# Session Response (for admin)
-class SessionResponse(BaseModel):
-    session_id: str
-    user_id: int
-    is_active: bool
-    login_time: datetime
-    last_active: datetime
-    device_info: Optional[str]
-    ip_address: Optional[str]
-
-    class Config:
-        from_attributes = True
 
 
 # Generic Message Response

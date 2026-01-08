@@ -7,11 +7,9 @@ from app.crud.problem import (
     delete_problem as crud_delete_problem,
     is_problem_solved_by_user,
     create_test_case as crud_create_test_case,
-    get_test_case_by_id,
     get_test_cases_by_problem,
     get_sample_test_cases_by_problem,
     delete_test_case as crud_delete_test_case,
-    verify_problem_owner,
     verify_test_case_owner,
 )
 from app.schemas.problem import (
@@ -23,8 +21,7 @@ from app.schemas.problem import (
     TestCaseCreate,
     TestCaseResponse,
 )
-from app.models.models import Problem, TestCase
-from typing import List, Optional
+from typing import List
 from fastapi import HTTPException, status
 
 
@@ -182,7 +179,6 @@ class ProblemService:
                 detail="Only the problem creator can upload editorial"
             )
         
-        # Update the editorial_url_link in database
         problem.editorial_url_link = editorial_url
         db.commit()
         db.refresh(problem)

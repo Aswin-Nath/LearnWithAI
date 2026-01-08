@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from app.models.models import User, Session as DBSession, BlacklistedToken, ChatMessage
-from app.core.security import hash_password, hash_token
+from app.core.security import  hash_token
 
 
 # User CRUD
