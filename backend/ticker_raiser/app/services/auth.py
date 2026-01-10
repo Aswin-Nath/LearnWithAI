@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from typing import Optional, Tuple
 from datetime import datetime
 from dataclasses import dataclass
-import logging
 
 from app.crud.auth import UserCRUD, SessionCRUD, BlacklistedTokenCRUD
 from app.core.security import (
@@ -28,11 +27,8 @@ from app.core.exceptions import (
 )
 from app.models.models import User
 from app.schemas.auth import TokenResponse
-
-_logger = logging.getLogger(__name__)
-
-
-# Data Structures
+from app.core.logger import get_logger
+_logger = get_logger("auth_service")
 
 @dataclass
 class AuthResult:

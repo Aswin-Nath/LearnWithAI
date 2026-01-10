@@ -2,15 +2,11 @@ from app.ai.graph.state import InputState,IntentDecision
 from app.ai.llm import llm
 from langchain_core.prompts import ChatPromptTemplate
 
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
+
+from app.core.logger import get_logger
+
+logger=get_logger("classify_intent")
 
 def classify_intent_node(state: InputState) -> dict:
     """

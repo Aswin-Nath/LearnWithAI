@@ -1,16 +1,10 @@
-"""
-Chat service - Handles chat message persistence and retrieval.
-Separated from authentication service for modularity.
-"""
-
 from sqlalchemy.orm import Session
 from typing import List
-import logging
-
+from app.core.logger import get_logger
 from app.crud.chat import ChatMessageCRUD
 from app.models.models import ChatMessage
 
-logger = logging.getLogger(__name__)
+logger =get_logger("chat_service")
 
 
 class ChatService:
@@ -149,7 +143,7 @@ class ChatService:
             
         except Exception as e:
             logger.error(
-                f"[ChatService] ✗ Failed to insert conversation pair: {str(e)}",
+                f"[ChatService]  Failed to insert conversation pair: {str(e)}",
                 exc_info=True
             )
             raise

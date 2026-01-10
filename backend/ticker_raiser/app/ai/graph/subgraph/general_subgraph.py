@@ -2,15 +2,11 @@ from langgraph.graph import StateGraph,END
 from app.ai.graph.state import GraphState
 from app.ai.rag.prompts import build_prompt
 from app.ai.nodes.llm import invoke_llm_node
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
+
+from app.core.logger import get_logger
+
+logger=get_logger("general_subgraph")
 
 
 def general_concept_prompt(state: GraphState) -> dict:    
@@ -28,7 +24,7 @@ def general_concept_prompt(state: GraphState) -> dict:
         )
         return {"prompt_text": prompt_text}
     except Exception as e:
-        logger.error(f"[GENERAL] ✗ Prompt building failed: {str(e)}", exc_info=True)
+        logger.error(f"[GENERAL]  Prompt building failed: {str(e)}", exc_info=True)
         return {"prompt_text": ""}
 
 def general_concept_subgraph() -> StateGraph:

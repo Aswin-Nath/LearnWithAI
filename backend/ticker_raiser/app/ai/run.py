@@ -1,13 +1,9 @@
 from app.ai.graph.graph import graph
+from app.core.logger import get_logger
 
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+
+logger = get_logger("run_graph")
+
 
 
 
@@ -16,7 +12,7 @@ def run_graph(input_dict: dict) -> dict:
         result = graph.invoke(input_dict)
         answer = result.get("answer", "I couldn't generate a response. Please try again.")
         intent = result.get("user_intent", "")
-        logger.info(f"[GRAPH] Decision: Execution completed successfully - Intent: {intent}")
+        logger.debug(f"[GRAPH] Decision: Execution completed successfully - Intent: {intent}")
         return {
             "answer": answer,
             "intent": intent

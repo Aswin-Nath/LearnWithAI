@@ -1,14 +1,8 @@
 from app.ai.graph.state import GraphState
 from app.ai.rag.prompts import build_prompt
+from app.core.logger import get_logger
 
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+logger=get_logger("prompt_node")
 
 
 def build_prompt_node(state: GraphState) -> dict:    
@@ -32,5 +26,5 @@ def build_prompt_node(state: GraphState) -> dict:
         )
         return {"prompt_text": prompt_text}
     except Exception as e:
-        logger.error(f"[PROMPT] ✗ Prompt building failed: {str(e)}", exc_info=True)
+        logger.error(f"[PROMPT]  Prompt building failed: {str(e)}", exc_info=True)
         return {"prompt_text": ""}

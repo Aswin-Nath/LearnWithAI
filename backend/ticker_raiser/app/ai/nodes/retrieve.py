@@ -1,15 +1,9 @@
 from app.ai.graph.state import GraphState
 from app.ai.rag.retriever import retriever
 from typing import List
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+from app.core.logger import get_logger
 
+logger=get_logger("retrieve_node")
 
 
 def filter_by_section(chunks: List[dict], allowed_sections: List[str]) -> List[dict]:
@@ -49,7 +43,7 @@ def retrieve_and_filter(state: GraphState) -> dict:
         chunks = retriever.retrieve(problem_id=problem_id, query=query_text, k=k)
         
         allowed_sections = state.get("sections")
-        print("CHUNKS",chunks,allowed_sections)
+
         if not chunks or not allowed_sections:
             return {"filtered_chunks": []}
         filtered = filter_by_section(chunks, allowed_sections)
@@ -60,6 +54,6 @@ def retrieve_and_filter(state: GraphState) -> dict:
         return {"filtered_chunks": filtered}
         
     except Exception as e:
-        logger.error(f"[RAG] ✗ Retrieval/Filter failed: {str(e)}", exc_info=True)
+        logger.error(f"[RAG]  Retrieval/Filter failed: {str(e)}", exc_info=True)
         return {"filtered_chunks": []}
 

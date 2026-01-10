@@ -1,6 +1,5 @@
 import os
 import sys
-import logging
 from typing import TypedDict, Optional, Literal, NotRequired, Annotated, List
 from urllib.parse import quote_plus
 from dotenv import load_dotenv
@@ -12,13 +11,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -239,7 +231,6 @@ def retrieve_and_filter(state: GraphState) -> dict:
         return {"filtered_chunks": filtered}
         
     except Exception as e:
-        logger.error(f"[RAG] ✗ Retrieval/Filter failed: {str(e)}", exc_info=True)
         return {"filtered_chunks": []}
 
 def build_prompt_node(state: GraphState) -> dict:    
@@ -263,7 +254,6 @@ def build_prompt_node(state: GraphState) -> dict:
         )
         return {"prompt_text": prompt_text}
     except Exception as e:
-        logger.error(f"[PROMPT] ✗ Prompt building failed: {str(e)}", exc_info=True)
         return {"prompt_text": ""}
 
 def invoke_llm_node(state: GraphState) -> dict:    
@@ -277,7 +267,6 @@ def invoke_llm_node(state: GraphState) -> dict:
         answer = response.content
         return {"answer": answer}
     except Exception as e:
-        logger.error(f"[LLM] ✗ LLM invocation failed: {str(e)}", exc_info=True)
         return {"answer": f"Error generating response: {str(e)}"}
 
 
@@ -297,7 +286,6 @@ def general_concept_prompt(state: GraphState) -> dict:
         )
         return {"prompt_text": prompt_text}
     except Exception as e:
-        logger.error(f"[GENERAL] ✗ Prompt building failed: {str(e)}", exc_info=True)
         return {"prompt_text": ""}
 
 def general_concept_subgraph() -> StateGraph:
@@ -570,9 +558,7 @@ Then respond with ONLY the intent name: general_concept_help, clarification_requ
         intent = result.intent
         
     except Exception as e:
-        logger.error(f"[CLASSIFY] Classification error: {str(e)}", exc_info=True)
         intent = "how_to_solve_this"
-        logger.warning(f"[CLASSIFY] Decision: Falling back to default intent '{intent}' due to error")
         result = IntentDecision(intent=intent, confidence=0.0)
 
     return_dict = {
@@ -622,13 +608,11 @@ def run_graph(input_dict: dict) -> dict:
         result = graph.invoke(input_dict)
         answer = result.get("answer", "I couldn't generate a response. Please try again.")
         intent = result.get("user_intent", "")
-        logger.info(f"[GRAPH] Decision: Execution completed successfully - Intent: {intent}")
         return {
             "answer": answer,
             "intent": intent
         }
     except Exception as e:
-        logger.error(f"[GRAPH] Decision: Execution failed with error - {str(e)}")
         return {
             "answer": f"Error: {str(e)}",
             "intent": ""

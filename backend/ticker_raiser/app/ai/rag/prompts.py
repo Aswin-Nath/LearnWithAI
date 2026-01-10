@@ -250,12 +250,9 @@ def build_prompt(
     if intent not in PROMPT_TEMPLATES:
         intent = "clarification_request"
     
-    # CONVERSATION HISTORY
     history_text = ""
     if conversation_context:
         history_str = []
-        # Include ALL messages in the context (which already includes current query from setup_node)
-        # This ensures the LLM sees the full conversation thread
         for msg in conversation_context:
             if isinstance(msg, HumanMessage):
                 history_str.append(f"User: {msg.content}")
@@ -265,7 +262,6 @@ def build_prompt(
         history_text = "\n".join(history_str)
         print(f"[PROMPT] ✓ Including {len(conversation_context)} messages in conversation history for context")
     
-    #  DEDUPLICATE CHUNKS 
     seen_content = set()
     deduplicated = []
     for chunk in context_chunks:
@@ -275,7 +271,6 @@ def build_prompt(
             seen_content.add(content_hash)
             deduplicated.append(chunk)
     
-    #  BUILD CONTEXT STRING 
     context_text = "\n\n".join([
         f"[{chunk['section']}]\n{chunk['content']}"
         for chunk in deduplicated[:3]
@@ -284,7 +279,6 @@ def build_prompt(
     if not context_text:
         context_text = "(No specific context found - answer from general knowledge)"
     
-    #  FORMAT SAMPLE TEST CASES 
     sample_test_cases_text = ""
     if sample_test_cases:
         cases_lines = []
@@ -301,7 +295,6 @@ def build_prompt(
     if history_text:
         system_prompt += f"\n\nCONVERSATION HISTORY:\n{history_text}\n\nUse this history to understand context (e.g. 'it', 'that code')."
     
-    # SUBSTITUTIONS 
     replacements = {
         "problem_title": problem.get("title", "Unknown") if problem else "Unknown",
         "problem_description": problem.get("description", "Unknown") if problem else "Unknown",
@@ -314,7 +307,6 @@ def build_prompt(
         "sample_test_cases": sample_test_cases_text
     }
     
-    # FINAL PROMPT 
     user_prompt = template["user_template"].format(**replacements)
     
     return f"{system_prompt}\n\n---\n\n{user_prompt}"

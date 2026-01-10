@@ -56,7 +56,22 @@ class ChromaRetriever:
             print(f"Retrieval error: {e}")
             return []
 
-retriever = ChromaRetriever()
+# Lazy initialization - retriever will be created on first use
+_retriever = None
+
+def get_retriever():
+    """Get or create the global retriever instance (lazy initialization)."""
+    global _retriever
+    if _retriever is None:
+        _retriever = ChromaRetriever()
+    return _retriever
+
+# For backwards compatibility - create a property-like accessor
+class _RetrieverProxy:
+    def __getattr__(self, name):
+        return getattr(get_retriever(), name)
+
+retriever = _RetrieverProxy()
 
 PROMPT_TEMPLATES = {
     "how_to_solve_this": {

@@ -1,15 +1,3 @@
-#!/usr/bin/env python3
-"""
-Judge Worker - Optimized Version
-
-Key improvements:
-1. Proper Docker cleanup with timeout handling
-2. Better error handling and logging
-3. Container cleanup verification
-4. Rate limiting and backpressure
-5. Better temp file management
-"""
-
 import redis
 import time
 import sys
@@ -302,15 +290,15 @@ def judge_submission(submission_id: int) -> bool:
                 logger.debug(f"✓ Test {i} PASSED")
                 passed_count += 1
             elif result["timed_out"]:
-                logger.warning(f"✗ Test {i} TIME_LIMIT_EXCEEDED")
+                logger.warning(f" Test {i} TIME_LIMIT_EXCEEDED")
                 final_status = "TIME_LIMIT_EXCEEDED"
                 break  # Stop on first failure
             elif result["error"]:
-                logger.warning(f"✗ Test {i} RUNTIME_ERROR ({result['error_type']})")
+                logger.warning(f" Test {i} RUNTIME_ERROR ({result['error_type']})")
                 final_status = "RUNTIME_ERROR"
                 break
             else:
-                logger.warning(f"✗ Test {i} WRONG_ANSWER")
+                logger.warning(f" Test {i} WRONG_ANSWER")
                 if final_status == "ACCEPTED":
                     final_status = "WRONG_ANSWER"
         
@@ -372,7 +360,7 @@ def worker_loop():
         redis_client.ping()
         logger.info("✓ Redis connected")
     except Exception as e:
-        logger.error(f"✗ Redis connection failed: {e}")
+        logger.error(f" Redis connection failed: {e}")
         logger.error("Make sure Redis is running: docker run -d --name redis -p 6379:6379 redis:7-alpine")
         sys.exit(1)
     
@@ -384,11 +372,11 @@ def worker_loop():
             check=False
         )
         if result.returncode != 0:
-            logger.error("✗ Docker not available or not running")
+            logger.error(" Docker not available or not running")
             sys.exit(1)
         logger.info("✓ Docker available")
     except Exception as e:
-        logger.error(f"✗ Docker check failed: {e}")
+        logger.error(f" Docker check failed: {e}")
         sys.exit(1)
     
     cleanup_orphaned_containers()

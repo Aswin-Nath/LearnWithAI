@@ -2,7 +2,6 @@
 Chat/Tutoring API endpoint - Uses LangGraph for context-aware AI responses.
 """
 
-import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -14,9 +13,10 @@ from app.ai.run import run_graph
 from app.services.chat import ChatService
 from app.dependencies.auth import get_current_user
 from sqlalchemy import text
+from app.core.logger import get_logger
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger=get_logger("chat_route")
+
 router = APIRouter(prefix="/chat", tags=["CHAT"])
 
 
@@ -134,7 +134,7 @@ async def chat_with_tutor(
         
         logger.info(f"[ENDPOINT] ✓ Loaded {len(previous_messages)} previous messages from DB")
     except Exception as e:
-        logger.warning(f"[ENDPOINT] ✗ Failed to fetch chat history: {str(e)}")
+        logger.warning(f"[ENDPOINT]  Failed to fetch chat history: {str(e)}")
         previous_messages = []
     
     graph_input = {
