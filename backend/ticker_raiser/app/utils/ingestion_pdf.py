@@ -5,8 +5,12 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from pathlib import Path
 from langchain_core.documents import Document
-
-PERSIST_DIR = str(Path(__file__).parent.parent / "ai/chroma_db")
+import os
+import app
+PERSIST_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(app.__file__)),
+    "chroma_db"
+)
 embeddings = HuggingFaceEmbeddings(model_name="all-mpnet-base-v2")
 
 def ingest_pdf_from_file(file_path: str, problem_id: int) -> dict:

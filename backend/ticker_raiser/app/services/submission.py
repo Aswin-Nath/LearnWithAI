@@ -27,7 +27,6 @@ class RedisClient:
             self.client.lpush("submissions_queue", submission_id)
             return True
         except Exception as e:
-            print(f"Redis enqueue error: {e}")
             return False
     
     def dequeue_submission(self, timeout: int = 0) -> Optional[int]:
@@ -38,7 +37,6 @@ class RedisClient:
                 return int(result[1])
             return None
         except Exception as e:
-            print(f"Redis dequeue error: {e}")
             return None
     
     def health_check(self) -> bool:

@@ -1,0 +1,12 @@
+{
+  "dockerfile_lines": [],
+  "graphs": {
+    "LearnWithAI": "./app/ai/graph/graph.py:graph",
+    "RoadMap": "./app/roadmap/graph.py:graph"
+  },
+  "env": "./.env",
+  "python_version": "3.12",
+  "dependencies": [
+    "."
+  ]
+}

@@ -260,7 +260,6 @@ def build_prompt(
                 history_str.append(f"AI: {msg.content}")
         
         history_text = "\n".join(history_str)
-        print(f"[PROMPT] ✓ Including {len(conversation_context)} messages in conversation history for context")
     
     seen_content = set()
     deduplicated = []

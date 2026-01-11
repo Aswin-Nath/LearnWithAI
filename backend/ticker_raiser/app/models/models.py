@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 import uuid as uuid_lib
 from datetime import datetime, timezone
 from app.core.database import Base
+from pgvector.sqlalchemy import Vector
 
 class User(Base):
     __tablename__ = "users"
@@ -85,6 +86,7 @@ class Problem(Base):
     time_limit_ms = Column(Integer, nullable=False, default=1000)  # milliseconds
     created_by = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
     editorial_url_link = Column(String(500), nullable=True)  # Cloudinary PDF URL for editorial
+    description_embedding = Column(Vector(768)) # Embedding of problem description
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
@@ -158,3 +160,42 @@ class ChatMessage(Base):
         CheckConstraint("role IN ('user', 'assistant')", name="chat_messages_role_check"),
         UniqueConstraint("user_id", "problem_id", "created_at", name="idx_chat_messages_user_problem_time"),
     )
+
+# --- Roadmap Models ---
+
+class Roadmap(Base):
+    __tablename__ = "roadmaps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    topic = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    # Relationships
+    phases = relationship("RoadmapPhase", back_populates="roadmap", cascade="all, delete-orphan")
+
+
+class RoadmapPhase(Base):
+    __tablename__ = "roadmap_phases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    roadmap_id = Column(Integer, ForeignKey("roadmaps.id", ondelete="CASCADE"), nullable=False, index=True)
+    phase_order = Column(Integer, nullable=False)  # 1-based order
+    phase_name = Column(String(255), nullable=False)
+    phase_goal = Column(Text, nullable=False)
+    content_markdown = Column(Text, nullable=False)
+    
+    # Relationships
+    roadmap = relationship("Roadmap", back_populates="phases")
+    problems = relationship("RoadmapPhaseProblem", back_populates="phase", cascade="all, delete-orphan")
+
+
+class RoadmapPhaseProblem(Base):
+    __tablename__ = "roadmap_phase_problems"
+
+    id = Column(Integer, primary_key=True, index=True)
+    phase_id = Column(Integer, ForeignKey("roadmap_phases.id", ondelete="CASCADE"), nullable=False, index=True)
+    problem_id = Column(Integer, ForeignKey("problems.id", ondelete="CASCADE"), nullable=False)
+    
+    # Relationships
+    phase = relationship("RoadmapPhase", back_populates="problems")
+    problem = relationship("Problem")

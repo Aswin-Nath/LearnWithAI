@@ -116,7 +116,6 @@ def login_flow(
     user = UserCRUD.get_user_by_email(db, identifier)
     if not user:
         user = UserCRUD.get_user_by_username(db, identifier)
-    print("user",user.email)
     if not user or not verify_password(password, user.hashed_password):
         raise InvalidCredentialsException()
 
@@ -275,8 +274,6 @@ def logout_flow(db: Session, user_id: int, jti: str) -> str:
     
     if not session:
         raise SessionExpiredException("Session not found")
-    else:
-        print("Session found")
     # Mark session as inactive
     SessionCRUD.mark_session_inactive(db, str(session.session_id), "User logout")
 

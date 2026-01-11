@@ -17,3 +17,4 @@ cloudinary
 langgraph
 langchain
 langchain-openai
+pgvector

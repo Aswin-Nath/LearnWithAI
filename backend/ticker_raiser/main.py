@@ -18,26 +18,18 @@ from app.routes.chat import router as chat_router
 
 from judge_worker import worker_loop
 
-# --------------------------------------------------------------------
-# Logging
-# --------------------------------------------------------------------
+
 logger = get_logger("main")
     
-# --------------------------------------------------------------------
-# Global worker reference
-# --------------------------------------------------------------------
+
 judge_worker_thread: threading.Thread | None = None
 
 
-# --------------------------------------------------------------------
-# Lifespan (startup / shutdown)
-# --------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global judge_worker_thread
 
     try:
-        # ---- Startup ----
         logger.info("Creating/verifying database tables...")
         Base.metadata.create_all(bind=engine)
 
@@ -54,17 +46,13 @@ async def lifespan(app: FastAPI):
         yield
 
     except asyncio.CancelledError:
-        # Expected during reload / shutdown
         logger.info("Application lifespan cancelled (reload/shutdown)")
 
     finally:
-        # ---- Shutdown ----
         logger.info("Application shutdown complete")
 
 
-# --------------------------------------------------------------------
-# FastAPI app
-# --------------------------------------------------------------------
+
 app = FastAPI(
     title=APP_NAME,
     version=APP_VERSION,
@@ -72,9 +60,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# --------------------------------------------------------------------
-# UTF-8 Charset Middleware
-# --------------------------------------------------------------------
+
 class UTF8Middleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
@@ -84,9 +70,7 @@ class UTF8Middleware(BaseHTTPMiddleware):
         return response
 
 
-# --------------------------------------------------------------------
-# Middleware
-# --------------------------------------------------------------------
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -102,9 +86,6 @@ app.add_middleware(
 
 app.add_middleware(UTF8Middleware)
 
-# --------------------------------------------------------------------
-# Routers
-# --------------------------------------------------------------------
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(problems_router)
@@ -112,9 +93,6 @@ app.include_router(submissions_router)
 app.include_router(chat_router)
 
 
-# --------------------------------------------------------------------
-# Exception Handlers
-# --------------------------------------------------------------------
 @app.exception_handler(APIError)
 async def api_error_handler(request: Request, exc: APIError):
     return {
@@ -138,9 +116,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# --------------------------------------------------------------------
-# Health / Root
-# --------------------------------------------------------------------
+
 @app.get("/")
 def root():
     return {

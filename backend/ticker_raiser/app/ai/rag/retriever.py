@@ -2,14 +2,16 @@ import os
 from typing import List
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-
+import app
+PERSIST_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(app.__file__)),
+    "chroma_db"
+)
 class ChromaRetriever:
     """Handles all semantic retrieval from persistent Chroma store."""
     
     def __init__(self):
-        current_file = os.path.abspath(__file__)
-        app_dir = os.path.dirname(os.path.dirname(current_file))
-        self.persist_dir = os.path.join(app_dir, "chroma_db")
+        self.persist_dir =PERSIST_DIR
         print(f"🔗 RAG Layer connecting to DB at: {self.persist_dir}")
         
         self.embeddings = HuggingFaceEmbeddings(model_name="all-mpnet-base-v2")
