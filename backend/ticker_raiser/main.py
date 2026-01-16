@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import asyncio
+import time
 import threading
-
+from sqlalchemy.exc import OperationalError
 from app.core.database import engine, Base
 from app.core.config import APP_NAME, APP_VERSION
 from app.core.errors import APIError, error_response
@@ -25,11 +26,24 @@ logger = get_logger("main")
 judge_worker_thread: threading.Thread | None = None
 
 
+def wait_for_db(engine, retries=15, delay=1):
+    for i in range(retries):
+        try:
+            with engine.connect():
+                print("DB connected")
+                return
+        except OperationalError:
+            print(f"Waiting for DB... {i+1}/{retries}")
+            time.sleep(delay)
+    raise RuntimeError("DB never became ready")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global judge_worker_thread
-
     try:
+        logger.info("Waiting for database...")
+        wait_for_db(engine)
         logger.info("Creating/verifying database tables...")
         Base.metadata.create_all(bind=engine)
 
