@@ -182,35 +182,8 @@ export const ProblemList: React.FC = () => {
               )}
             </div>
 
-            <div className="filter-group">
-              <label htmlFor="difficulty-filter">Difficulty</label>
-              <select
-                id="difficulty-filter"
-                value={difficultyFilter}
-                onChange={(e) => setDifficultyFilter(e.target.value as any)}
-                className="filter-select"
-              >
-                <option value="ALL">All Levels</option>
-                <option value="EASY">Easy</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HARD">Hard</option>
-              </select>
-            </div>
 
-            <div className="filter-group">
-              <label htmlFor="status-filter">Status</label>
-              <select
-                id="status-filter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="filter-select"
-              >
-                <option value="ALL">All</option>
-                <option value="SOLVED">✓ Solved</option>
-                <option value="ATTEMPTED">⊙ Attempted</option>
-                <option value="TODO">→ To Do</option>
-              </select>
-            </div>
+
 
             {(searchQuery || difficultyFilter !== 'ALL' || statusFilter !== 'ALL') && (
               <button
