@@ -22,4 +22,6 @@ workflow.add_edge("generate_phases", "generate_problem")
 workflow.add_edge("generate_problem", "generate_phase_content")
 workflow.add_edge("generate_phase_content", END)
 
-graph = workflow.compile()
+from langgraph.checkpoint.memory import MemorySaver
+checkpointer = MemorySaver()
+graph = workflow.compile(checkpointer=checkpointer,interrupt_after=["evaluate_knowledge"])

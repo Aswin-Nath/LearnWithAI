@@ -50,15 +50,7 @@
   text-decoration: none;
 }
 
-.toolbar-btn:hover:not(:disabled) {
-  background: #f0f0f0;
-  border-color: #999;
-  transform: translateY(-1px);
-}
 
-.toolbar-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
 
 .toolbar-btn:disabled {
   opacity: 0.4;
@@ -140,9 +132,7 @@
   transition: background 0.2s ease;
 }
 
-.error-link:hover {
-  background: #b91c1c;
-}
+
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

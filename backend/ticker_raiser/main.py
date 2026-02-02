@@ -16,6 +16,7 @@ from app.routes.users import router as users_router
 from app.routes.problems import router as problems_router
 from app.routes.submissions import router as submissions_router
 from app.routes.chat import router as chat_router
+from app.routes.roadmap import router as roadmap_router
 
 from judge_worker import worker_loop
 
@@ -105,6 +106,7 @@ app.include_router(users_router)
 app.include_router(problems_router)
 app.include_router(submissions_router)
 app.include_router(chat_router)
+app.include_router(roadmap_router)
 
 
 @app.exception_handler(APIError)

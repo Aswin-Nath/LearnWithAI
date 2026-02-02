@@ -1,6 +1,7 @@
 // ProblemList feature component
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 // import { Navbar } from '../../components/Navbar';
 import { Navbar
   
@@ -54,6 +55,7 @@ export const ProblemList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<'ALL' | 'EASY' | 'MEDIUM' | 'HARD'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'SOLVED' | 'ATTEMPTED' | 'TODO'>('ALL');
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchProblems();
@@ -181,22 +183,6 @@ export const ProblemList: React.FC = () => {
                 </button>
               )}
             </div>
-
-
-
-
-            {(searchQuery || difficultyFilter !== 'ALL' || statusFilter !== 'ALL') && (
-              <button
-                className="btn-clear-filters"
-                onClick={() => {
-                  setSearchQuery('');
-                  setDifficultyFilter('ALL');
-                  setStatusFilter('ALL');
-                }}
-              >
-                Clear All
-              </button>
-            )}
           </div>
         </div>
 

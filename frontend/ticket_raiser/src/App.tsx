@@ -24,6 +24,10 @@ import { EditProblemPage } from './features/EditProblem/EditProblem';
 import { ManageTestCasesPage } from './features/ManageTestCases/ManageTestCases';
 import { UploadEditorialPage } from './features/UploadEditorial/UploadEditorial';
 import { ProblemDetailPage } from './features/ProblemDetail/ProblemDetail';
+import { ProblemList } from './features/ProblemList/ProblemList';
+import RoadmapGeneration from './features/RoadmapGeneration/RoadmapGeneration';
+import { IndividualRoadmap } from './features/IndividualRoadmap/IndividualRoadmap';
+import { MyRoadmaps } from './features/MyRoadmaps/MyRoadmaps';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 
@@ -57,6 +61,15 @@ function AppContent() {
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <Dashboard />
             </ProtectedRoute>
           }
         />
@@ -122,6 +135,50 @@ function AppContent() {
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <ProblemDetailPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Problems List Route */}
+        <Route
+          path="/problems"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <ProblemList />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Roadmap Routes */}
+        <Route
+          path="/roadmap"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <RoadmapGeneration />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/generate-roadmap"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <RoadmapGeneration />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-roadmaps"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <MyRoadmaps />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/roadmaps/:roadmapId"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <IndividualRoadmap />
             </ProtectedRoute>
           }
         />

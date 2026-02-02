@@ -1,6 +1,6 @@
 // ProblemDetail feature component
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { Navbar } from '../../components/Navbar/Navbar';
 // import { PDFViewer } from '../PDFViewer/PDFViewer';
@@ -64,6 +64,7 @@ interface SubmissionDetail extends Submission {
 export const ProblemDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const [problem, setProblem] = useState<Problem | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,6 +129,32 @@ export const ProblemDetailPage: React.FC = () => {
         // Stop polling if status changed
         if (submission.status !== 'PENDING') {
           clearInterval(poll);
+          
+          // Check for Roadmap Integration
+          const source = searchParams.get('source');
+          const roadmapId = searchParams.get('roadmapId');
+          const phaseId = searchParams.get('phaseId');
+          
+          if (submission.status === 'ACCEPTED' && source === 'roadmap' && roadmapId && phaseId) {
+             try {
+                 // Call Roadmap API to mark as solved with verification
+                 const roadmapResponse = await apiFetch(`/roadmap/${roadmapId}/phase/${phaseId}/problem/${id}/solve`, {
+                     method: 'POST',
+                     body: JSON.stringify({ submission_id: submission.id })
+                 });
+                 
+                 const result = roadmapResponse.data || roadmapResponse;
+                 
+                 if (result.success === false) {
+                     // Methodology Verification Failed
+                     alert(`⚠️ Methodology Check Failed!\n\n${result.feedback}\n\nPlease update your code to use the correct approach.`);
+                 } else {
+                     console.log("Roadmap progress updated detected!");
+                 }
+             } catch (err) {
+                 console.error("Failed to update roadmap progress", err);
+             }
+          }
         }
       } catch (err) {
         console.error('Polling error:', err);

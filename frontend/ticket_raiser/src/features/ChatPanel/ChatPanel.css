@@ -68,11 +68,7 @@
   transition: all 0.2s ease;
 }
 
-.chat-close-btn:hover {
-  color: #333;
-  background: #f0f0f0;
-  transform: scale(1.1);
-}
+
 
 /* Messages Container */
 .chat-messages {
@@ -117,10 +113,7 @@
   box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
 }
 
-.chat-message.user:hover {
-  box-shadow: 0 6px 16px rgba(30, 136, 229, 0.3);
-  transform: translateY(-2px);
-}
+
 
 .chat-message.assistant {
   background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
@@ -131,10 +124,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.chat-message.assistant:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
+
 
 .chat-message.assistant.streaming {
   background: linear-gradient(135deg, #f0f0f0 0%, #fafafa 100%);
@@ -390,7 +380,7 @@
   gap: 12px;
   padding: 16px;
   border-top: 1px solid #e0e0e0;
-  background: linear-gradient(to bottom, #fafafa, #f5f5f5);
+  background: #ffffff !important;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.03);
 }
 
@@ -412,13 +402,6 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
-}
-
-.intent-btn:hover:not(:disabled) {
-  border-color: #999;
-  background: #f9f9f9;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
 }
 
 .intent-btn.active {
@@ -557,13 +540,7 @@
 .chat-messages::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 3px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb:hover {
-  background: #999;
-}
-
-/* Responsive */
+}/* Responsive */
 @media (max-width: 768px) {
   .chat-message.user,
   .chat-message.assistant,

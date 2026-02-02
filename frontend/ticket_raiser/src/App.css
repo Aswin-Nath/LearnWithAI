@@ -1,40 +1,40 @@
 :root {
   /* Primary Colors */
-  --primary-color: #3b82f6;
-  --primary-dark: #1e40af;
+  --primary-color: #64c8ff;
+  --primary-dark: #0ea5e9;
   --primary-light: #dbeafe;
   
   /* Background Colors */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
   
   /* Text Colors */
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
   --text-tertiary: #94a3b8;
   
   /* Component Colors */
-  --navbar-bg: #ffffff;
-  --navbar-border: #e2e8f0;
-  --navbar-text: #1e293b;
+  --navbar-bg: #0f172a;
+  --navbar-border: #334155;
+  --navbar-text: #f1f5f9;
   
   /* Button Colors */
-  --button-bg: #3b82f6;
-  --button-text: #ffffff;
-  --button-secondary-bg: #f1f5f9;
-  --button-secondary-border: #cbd5e1;
-  --button-secondary-hover: #e2e8f0;
+  --button-bg: #64c8ff;
+  --button-text: #0f172a;
+  --button-secondary-bg: #1e293b;
+  --button-secondary-border: #475569;
+  --button-secondary-hover: #334155;
   
   /* Border Colors */
-  --border-color: #cbd5e1;
-  --border-light: #e2e8f0;
+  --border-color: #334155;
+  --border-light: #475569;
   
   /* Input Colors */
-  --input-bg: #ffffff;
-  --input-border: #cbd5e1;
-  --input-border-focus: #3b82f6;
-  --input-text: #1e293b;
+  --input-bg: #1e293b;
+  --input-border: #475569;
+  --input-border-focus: #64c8ff;
+  --input-text: #f1f5f9;
   --input-placeholder: #94a3b8;
   
   /* Difficulty Colors */

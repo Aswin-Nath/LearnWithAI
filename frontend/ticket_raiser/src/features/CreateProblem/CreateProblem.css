@@ -36,11 +36,7 @@
   font-family: inherit;
 }
 
-.back-btn:hover {
-  background: var(--button-secondary-hover);
-  border-color: var(--primary-color);
-  color: var(--text-primary);
-}
+
 
 .back-btn svg {
   width: 20px;
@@ -168,14 +164,7 @@
   font-family: inherit;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--button-bg-hover);
-  box-shadow: var(--shadow-lg);
-}
 
-.btn-primary:active:not(:disabled) {
-  transform: scale(0.98);
-}
 
 .btn-primary:disabled {
   opacity: 0.6;
@@ -195,11 +184,7 @@
   font-family: inherit;
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background: var(--button-secondary-hover);
-  border-color: var(--primary-color);
-  color: var(--text-primary);
-}
+
 
 .btn-secondary:disabled {
   opacity: 0.6;

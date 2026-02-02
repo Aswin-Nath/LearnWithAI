@@ -80,11 +80,7 @@
   font-family: inherit;
 }
 
-.back-btn:hover {
-  background: var(--button-secondary-hover);
-  border-color: var(--primary-color);
-  color: var(--text-primary);
-}
+
 
 .back-btn svg {
   width: 20px;
@@ -206,10 +202,7 @@
   font-family: inherit;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
+
 
 .btn-primary:disabled {
   opacity: 0.6;
@@ -229,10 +222,7 @@
   font-family: inherit;
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background: #334155;
-  border-color: #475569;
-}
+
 
 .btn-secondary:disabled {
   opacity: 0.6;
@@ -255,9 +245,7 @@
   font-family: inherit;
 }
 
-.btn-delete:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.2);
-}
+
 
 .btn-delete:disabled {
   opacity: 0.6;
@@ -282,9 +270,7 @@
   font-family: inherit;
 }
 
-.btn-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.2);
-}
+
 
 .btn-danger:disabled {
   opacity: 0.6;
@@ -327,10 +313,7 @@
   transition: all 0.2s ease;
 }
 
-.test-case-card:hover {
-  border-color: #475569;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
+
 
 .test-case-header {
   display: flex;
@@ -369,10 +352,7 @@
   justify-content: center;
 }
 
-.btn-edit:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  transform: translateY(-2px);
-}
+
 
 .btn-edit:disabled {
   opacity: 0.6;

@@ -3,12 +3,17 @@ from app.roadmap.models import MCQResponse
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from app.roadmap.llm import llm
+from app.core.logger import get_logger
+
+logger = get_logger("roadmap.mcq.generate")
 
 
 def generate_mcqs_node(state: RoadMapState) -> dict:
     """
     Generates 6 MCQs using LLM based on topic and user query.
     """
+    print("🎯 GENERATE MCQs NODE CALLED")  # This will always show
+    
     try:
         topic = state.get("topic", "")
         user_query = state.get("user_query", "")
@@ -30,7 +35,7 @@ INSTRUCTIONS:
 3. Each MCQ must target one or more **atomic learning topics**.
 4. Topics must be fine-grained skills (e.g., "collision_handling", "time_complexity", "hashing_intro"),
    NOT broad chapter names.
-5. Each MCQ MUST include a non-empty `topics` array.
+5. Each MCQ MUST include a non-empty `topics` array with AT LEAST ONE topic.
 6. Only one option is correct.
 7. Options should be plausible and non-trivial.
 8. Do NOT include explanations.
@@ -66,8 +71,15 @@ User Query: {user_query}
         for mcq in result.mcqs:
             if len(mcq.options) != 4:
                 raise ValueError(f"MCQ {mcq.mcq_id} has {len(mcq.options)} options, expected exactly 4.")
+            if not mcq.topics or len(mcq.topics) == 0:
+                raise ValueError(f"MCQ {mcq.mcq_id} has no topics. Each MCQ must have at least one topic.")
         
         mcqs_dict = [mcq.model_dump() for mcq in result.mcqs]
+        
+        print(f"✅ Generated {len(mcqs_dict)} MCQs successfully")
+        print(f"📌 Sample MCQ: {mcqs_dict[0]}")
+        logger.info(f"Generated {len(mcqs_dict)} MCQs successfully")
+        logger.info(f"Sample MCQ: {mcqs_dict[0]}")
 
         return {
             **state,
@@ -76,6 +88,8 @@ User Query: {user_query}
         }
 
     except Exception as e:
+        print(f"❌ Error generating MCQs: {str(e)}")
+        logger.error(f"Error generating MCQs: {str(e)}")
         return {
             **state,
             "mcqs": [],

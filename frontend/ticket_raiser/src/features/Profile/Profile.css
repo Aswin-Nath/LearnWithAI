@@ -81,10 +81,7 @@
   font-family: inherit;
 }
 
-.tab-button:hover {
-  color: #1e293b;
-  background: #ffffff;
-}
+
 
 .tab-button.active {
   color: #3b82f6;
@@ -294,9 +291,7 @@
   transition: color 0.2s;
 }
 
-.toggle-password:hover {
-  color: #cbd5e1;
-}
+
 
 .error-text {
   font-size: 0.875rem;
@@ -352,10 +347,7 @@
   align-self: flex-start;
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
-}
+
 
 .btn-primary:disabled {
   opacity: 0.6;
@@ -375,10 +367,7 @@
   transition: all 0.3s ease;
 }
 
-.btn-danger:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
-}
+
 
 .btn-danger:disabled {
   opacity: 0.6;

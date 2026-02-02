@@ -106,10 +106,6 @@ OUTPUT FORMAT (STRICT JSON):
                 for phase in result.phases:
                     if not phase.focus_topics:
                         raise ValueError(f"Phase {phase.phase_id} ({phase.phase_name}) has empty focus_topics.")
-                    
-                    for t in phase.focus_topics:
-                        if t not in all_allowed_topics:
-                            raise ValueError(f"Invalid topic '{t}' in Phase {phase.phase_id}. Must be one of: {list(all_allowed_topics)}")
 
                 phases_dict = [phase.model_dump() for phase in result.phases]
                 return {

@@ -168,9 +168,15 @@ class Roadmap(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     topic = Column(String(255), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
+    # --- NEW FIELDS ---
+    status = Column(String(50), nullable=False, default="ACTIVE") 
+    current_phase_order = Column(Integer, nullable=False, default=1)
+    
     # Relationships
+    user = relationship("User")
     phases = relationship("RoadmapPhase", back_populates="roadmap", cascade="all, delete-orphan")
 
 
@@ -184,6 +190,10 @@ class RoadmapPhase(Base):
     phase_goal = Column(Text, nullable=False)
     content_markdown = Column(Text, nullable=False)
     
+    # --- NEW FIELDS ---
+    is_completed = Column(Boolean, nullable=False, default=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    
     # Relationships
     roadmap = relationship("Roadmap", back_populates="phases")
     problems = relationship("RoadmapPhaseProblem", back_populates="phase", cascade="all, delete-orphan")
@@ -195,6 +205,8 @@ class RoadmapPhaseProblem(Base):
     id = Column(Integer, primary_key=True, index=True)
     phase_id = Column(Integer, ForeignKey("roadmap_phases.id", ondelete="CASCADE"), nullable=False, index=True)
     problem_id = Column(Integer, ForeignKey("problems.id", ondelete="CASCADE"), nullable=False)
+    match_reason = Column(Text, nullable=True)
+    is_solved = Column(Boolean, nullable=False, default=False)
     
     # Relationships
     phase = relationship("RoadmapPhase", back_populates="problems")

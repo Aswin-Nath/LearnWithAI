@@ -66,6 +66,18 @@ export const Navbar: React.FC = () => {
 
         {/* Desktop Menu */}
         <div className="navbar-desktop">
+          {/* Navigation Links */}
+          <div className="navbar-nav">
+            <button 
+              className="nav-btn-create-roadmap"
+              onClick={() => navigate('/generate-roadmap')}
+            >
+              + Create Roadmap
+            </button>
+            <Link to="/my-roadmaps" className="nav-link">
+              Roadmaps
+            </Link>
+          </div>
 
           {/* User Menu */}
           <div className="user-menu">
@@ -129,6 +141,20 @@ export const Navbar: React.FC = () => {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="mobile-menu">
+          <button
+            className="mobile-nav-link mobile-create-btn"
+            onClick={() => {
+              navigate('/generate-roadmap');
+              setMobileMenuOpen(false);
+            }}
+            disabled={isLoading}
+          >
+            + Create Roadmap
+          </button>
+          <div className="mobile-divider"></div>
+          <Link to="/my-roadmaps" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+            Roadmaps
+          </Link>
           <div className="mobile-divider"></div>
           <button
             className="mobile-nav-link"
