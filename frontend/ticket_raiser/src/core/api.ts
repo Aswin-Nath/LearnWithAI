@@ -53,6 +53,10 @@ export async function apiFetch(
 
     clearTimeout(timeoutId);
 
+    if (response.status === 204) {
+      return null;
+    }
+
     // Handle non-JSON responses
     const contentType = response.headers.get('content-type');
     const isJson = contentType?.includes('application/json');

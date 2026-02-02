@@ -305,11 +305,12 @@ const RoadmapGeneration: React.FC = () => {
 
     const renderInputStep = () => (
         <div className="roadmap-input-container">
+            <button className="back-btn" onClick={() => navigate('/problems')} style={{ alignSelf: 'flex-start', marginBottom: '-1rem' }}>
+                ← Back to Problems
+            </button>
+
             {/* Hero / Left Column */}
             <div className="input-hero-section">
-                <button className="back-btn" onClick={() => navigate('/problems')}>
-                    ← Back to Problems
-                </button>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <h1 className="roadmap-title">Build Your Knowledge Path</h1>
                     <p className="roadmap-subtitle">
@@ -321,7 +322,7 @@ const RoadmapGeneration: React.FC = () => {
             {/* Form / Right Column */}
             <div className="input-form-section">
                 <div className="input-group">
-                    <label>📚 What Topic Do You Want to Learn?</label>
+                    <label>What Topic Do You Want to Learn?</label>
                     <input 
                         type="text" 
                         placeholder="e.g. Dynamic Programming, React, System Design..." 
@@ -332,7 +333,7 @@ const RoadmapGeneration: React.FC = () => {
                 </div>
                 
                 <div className="input-group">
-                    <label>🎯 Specific Goal or Query (Optional)</label>
+                    <label>Specific Goal or Query (Optional)</label>
                     <textarea 
                         placeholder="e.g. I struggle with recursion. I want to solve hard problems." 
                         value={query}
@@ -342,7 +343,7 @@ const RoadmapGeneration: React.FC = () => {
                 </div>
 
                 <button className="roadmap-primary-btn glow-effect" onClick={handleGenerateMCQs}>
-                    Start Your Journey 🚀
+                    Start Your Journey
                 </button>
             </div>
         </div>

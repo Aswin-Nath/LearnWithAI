@@ -28,6 +28,7 @@ import { ProblemList } from './features/ProblemList/ProblemList';
 import RoadmapGeneration from './features/RoadmapGeneration/RoadmapGeneration';
 import { IndividualRoadmap } from './features/IndividualRoadmap/IndividualRoadmap';
 import { MyRoadmaps } from './features/MyRoadmaps/MyRoadmaps';
+import CustomProblemsPage from './features/CustomProblems/CustomProblems';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 
@@ -179,6 +180,14 @@ function AppContent() {
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <IndividualRoadmap />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/custom-problems"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <CustomProblemsPage />
             </ProtectedRoute>
           }
         />

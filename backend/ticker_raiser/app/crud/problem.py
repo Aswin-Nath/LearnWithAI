@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, exists
+from sqlalchemy import and_, exists, or_
 from app.models.models import Problem, TestCase, Submission, User
 from app.schemas.problem import ProblemCreate, ProblemUpdate
 from app.utils.text_processor import (
@@ -38,9 +38,15 @@ def get_problem_by_id(db: Session, problem_id: int) -> Optional[Problem]:
     return db.query(Problem).filter(Problem.id == problem_id).first()
 
 
-def get_all_problems(db: Session, skip: int = 0, limit: int = 100) -> List[Problem]:
-    """Get all problems with pagination"""
-    return db.query(Problem).offset(skip).limit(limit).all()
+def get_all_problems(db: Session, user_id: Optional[int] = None, skip: int = 0, limit: int = 100) -> List[Problem]:
+    """Get visible problems (Global Public only, excluding Custom Problems)"""
+    # Always exclude custom problems from the main list
+    query = db.query(Problem).filter(Problem.is_custom == False)
+    
+    # Note: If we had 'private' standard problems, we'd check created_by permissions here.
+    # For now, all standard problems are public.
+        
+    return query.offset(skip).limit(limit).all()
 
 
 def update_problem(db: Session, problem_id: int, problem_update: ProblemUpdate, creator_id: int) -> Optional[Problem]:

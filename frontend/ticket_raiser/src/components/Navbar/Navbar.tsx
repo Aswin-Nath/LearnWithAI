@@ -77,6 +77,9 @@ export const Navbar: React.FC = () => {
             <Link to="/my-roadmaps" className="nav-link">
               Roadmaps
             </Link>
+            <Link to="/custom-problems" className="nav-link">
+              Custom Problems
+            </Link>
           </div>
 
           {/* User Menu */}

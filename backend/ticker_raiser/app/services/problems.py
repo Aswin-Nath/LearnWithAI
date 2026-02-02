@@ -42,7 +42,7 @@ class ProblemService:
         List all problems with is_solved status.
         is_solved is computed for the current user.
         """
-        problems = get_all_problems(db)
+        problems = get_all_problems(db, user_id=current_user_id)
         result = []
         
         for problem in problems:
@@ -55,7 +55,9 @@ class ProblemService:
                     time_limit_ms=problem.time_limit_ms,
                     is_solved=is_solved,
                     editorial_url_link=problem.editorial_url_link,
-                    created_at=problem.created_at
+                    created_at=problem.created_at,
+                    is_custom=problem.is_custom,
+                    generation_topic=problem.generation_topic
                 )
             )
         
@@ -96,8 +98,13 @@ class ProblemService:
             time_limit_ms=problem.time_limit_ms,
             is_solved=is_solved,
             editorial_url_link=problem.editorial_url_link,
+            editorial_markdown=problem.editorial_markdown,
+            canonical_code=problem.canonical_code if is_owner else None,
             test_cases=test_case_responses,
-            created_at=problem.created_at
+            created_at=problem.created_at,
+            is_custom=problem.is_custom,
+            generation_topic=problem.generation_topic,
+            generation_query=problem.generation_query if is_owner else None
         )
 
     @staticmethod

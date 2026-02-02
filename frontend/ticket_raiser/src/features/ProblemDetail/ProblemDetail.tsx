@@ -1,4 +1,5 @@
 // ProblemDetail feature component
+import ReactMarkdown from 'react-markdown';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
@@ -42,7 +43,12 @@ interface Problem {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   time_limit_ms?: number;
   editorial_url_link?: string;
+  editorial_markdown?: string;
+  canonical_code?: string;
   test_cases?: TestCase[];
+  is_custom?: boolean;
+  generation_query?: string;
+  generation_topic?: string;
 }
 
 const ChevronLeftIcon = () => (
@@ -164,13 +170,23 @@ export const ProblemDetailPage: React.FC = () => {
     return () => clearInterval(poll);
   }, [currentSubmission]);
 
+
   const fetchProblem = async () => {
     try {
       setLoading(true);
-      const data = await apiFetch(`/problems/${id}`, {
+      const isCustom = searchParams.get('custom') === 'true';
+      const endpoint = isCustom ? `/custom-problems/${id}` : `/problems/${id}`;
+      
+      const data = await apiFetch(endpoint, {
         method: 'GET',
       });
       setProblem(data.data || data);
+      
+      // Load canonical code if it's a custom problem to let user see it (optional, or prefill editor)
+      if (isCustom && data.canonical_code) {
+          // setCode(data.canonical_code); // Uncomment to auto-fill solution
+      }
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch problem');
     } finally {
@@ -288,7 +304,13 @@ export const ProblemDetailPage: React.FC = () => {
       <div className="problem-detail-wrapper">
         <Navbar />
         <div className="error-container">
-          <button className="back-btn" onClick={() => navigate('/problems')}>
+          <button className="back-btn" onClick={() => {
+              if (searchParams.get('custom') === 'true') {
+                  navigate('/custom-problems');
+              } else {
+                  navigate('/problems');
+              }
+          }}>
             <ChevronLeftIcon />
             Back
           </button>
@@ -302,7 +324,13 @@ export const ProblemDetailPage: React.FC = () => {
     <div className="problem-detail-wrapper">
       <Navbar />
       <div className="problem-detail-header">
-        <button className="back-btn" onClick={() => navigate('/')} title="Go back to problems">
+        <button className="back-btn" onClick={() => {
+              if (searchParams.get('custom') === 'true') {
+                  navigate('/custom-problems');
+              } else {
+                  navigate('/problems'); 
+              }
+        }} title="Go back to list">
           <ChevronLeftIcon />
           <span className="back-text">Back</span>
         </button>
@@ -357,13 +385,17 @@ export const ProblemDetailPage: React.FC = () => {
               <>
                 <div className="description-section">
                   <h2>Description</h2>
-                  <div className="description-text">{problem.description}</div>
+                  <div className="description-text markdown-content">
+                      <ReactMarkdown>{problem.description}</ReactMarkdown>
+                  </div>
                 </div>
 
                 {problem.constraints && (
                   <div className="constraints-section">
                     <h3>Constraints</h3>
-                    <div className="constraints-text">{problem.constraints}</div>
+                    <div className="constraints-text markdown-content">
+                        <ReactMarkdown>{problem.constraints}</ReactMarkdown>
+                    </div>
                   </div>
                 )}
 
@@ -399,7 +431,38 @@ export const ProblemDetailPage: React.FC = () => {
             {/* Editorial Tab */}
             {activeTab === 'editorial' && (
               <div className="editorial-section">
-                {problem.editorial_url_link ? (
+                {/* Custom Problem Editorial (Markdown) */}
+                {problem.editorial_markdown ? (
+                     <div className="description-text">
+                        <h2>AI Generated Editorial</h2>
+                        <div className="description-text markdown-content">
+                            <ReactMarkdown>{problem.editorial_markdown}</ReactMarkdown>
+                        </div>
+                        
+                        {problem.canonical_code && (
+                             <div className="canonical-code-section" style={{marginTop: '30px', borderTop: '1px dashed #e2e8f0', paddingTop: '20px'}}>
+                                 <h3 style={{marginBottom: '15px', color: '#0f172a'}}>Reference Solution</h3>
+                                 <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                                    <Editor
+                                        height="300px"
+                                        language="python"
+                                        value={problem.canonical_code}
+                                        theme="vs-dark"
+                                        options={{
+                                            readOnly: true,
+                                            minimap: { enabled: false },
+                                            fontSize: 13,
+                                            scrollBeyondLastLine: false,
+                                            automaticLayout: true,
+                                            lineNumbers: 'on',
+                                        }}
+                                    />
+                                 </div>
+                             </div>
+                        )}
+                     </div>
+                ) : problem.editorial_url_link ? (
+                  /* Standard Problem Editorial (PDF) */
                   <>
                     <h2>Editorial Solution</h2>
                     <div className="pdf-viewer-wrapper">

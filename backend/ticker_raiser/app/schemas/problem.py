@@ -76,6 +76,8 @@ class ProblemListResponse(BaseModel):
     is_solved: bool
     editorial_url_link: Optional[str] = None
     created_at: datetime
+    is_custom: bool = False
+    generation_topic: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -90,8 +92,15 @@ class ProblemDetailResponse(BaseModel):
     time_limit_ms: int
     is_solved: bool
     editorial_url_link: Optional[str] = None
+    editorial_markdown: Optional[str] = None # New field
+    canonical_code: Optional[str] = None # New field
     test_cases: List[TestCaseResponse]
     created_at: datetime
+        
+    # Custom Metadata
+    is_custom: bool = False
+    generation_topic: Optional[str] = None
+    generation_query: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

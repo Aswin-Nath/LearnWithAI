@@ -23,6 +23,8 @@ class User(Base):
     __table_args__ = (
         CheckConstraint("role IN ('USER', 'PROBLEM_SETTER')", name="users_role_check"),
     )
+    
+
 
 
 class Session(Base):
@@ -84,10 +86,17 @@ class Problem(Base):
     constraints = Column(Text, nullable=True)
     difficulty = Column(String(20), nullable=False)  # EASY, MEDIUM, HARD
     time_limit_ms = Column(Integer, nullable=False, default=1000)  # milliseconds
-    created_by = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=True, index=True) 
     editorial_url_link = Column(String(500), nullable=True)  # Cloudinary PDF URL for editorial
     description_embedding = Column(Vector(768)) # Embedding of problem description
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # --- NEW CUSTOM PROBLEM FIELDS ---
+    is_custom = Column(Boolean, default=False, nullable=False)
+    generation_topic = Column(String(255), nullable=True)
+    generation_query = Column(Text, nullable=True)
+    editorial_markdown = Column(Text, nullable=True) # AI Explanation
+    canonical_code = Column(Text, nullable=True)     # For verification
 
     # Relationships
     creator = relationship("User")
@@ -98,6 +107,10 @@ class Problem(Base):
         CheckConstraint("difficulty IN ('EASY', 'MEDIUM', 'HARD')", name="problems_difficulty_check"),
         CheckConstraint("time_limit_ms > 0", name="problems_time_limit_positive"),
     )
+
+# ... (rest of models until CustomProblem)
+# Remove CustomProblem and CustomTestCase
+# Keep Roadmap models
 
 
 class TestCase(Base):
@@ -160,6 +173,8 @@ class ChatMessage(Base):
         CheckConstraint("role IN ('user', 'assistant')", name="chat_messages_role_check"),
         UniqueConstraint("user_id", "problem_id", "created_at", name="idx_chat_messages_user_problem_time"),
     )
+
+
 
 # --- Roadmap Models ---
 

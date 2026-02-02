@@ -1,20 +1,52 @@
+# --- Core API ---
 fastapi
 uvicorn
+
+# --- Database ---
 sqlalchemy
 psycopg2-binary
-python-multipart
+pgvector
+redis
+
+# --- Auth / Security ---
 python-jose
+PyJWT
 passlib
 bcrypt
+python-dotenv
+
+# --- Validation ---
 pydantic
 pydantic-settings
 pydantic[email]
-PyJWT
-python-dotenv
-redis
-docker
+
+# --- File & Uploads ---
+python-multipart
 cloudinary
-langgraph
+requests
+reportlab
+
+# --- Docker execution ---
+docker
+
+# --- PDF ingestion ---
+pymupdf
+pymupdf4llm
+
+# --- LangChain core ---
 langchain
+langchain-core
+langchain-community
+langchain-text-splitters
 langchain-openai
-pgvector
+langgraph
+
+# --- Vector DB ---
+langchain-chroma
+
+# --- HuggingFace embeddings ---
+sentence-transformers
+torch
+
+# --- Optional (if you use Groq LLMs) ---
+langchain-groq
