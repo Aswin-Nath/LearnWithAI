@@ -73,9 +73,15 @@ export const IndividualRoadmap: React.FC = () => {
             const data: Roadmap = await response.json();
             setRoadmap(data);
 
-            // Auto-select first phase
+            // Auto-select the first uncompleted phase, or the last phase if all completed
             if (data.phases && data.phases.length > 0) {
-                setSelectedPhaseId(data.phases[0].id);
+                const firstUncompletedPhase = data.phases.find(p => !p.is_completed);
+                if (firstUncompletedPhase) {
+                    setSelectedPhaseId(firstUncompletedPhase.id);
+                } else {
+                    // All phases completed - will show congratulations screen
+                    setSelectedPhaseId(null);
+                }
             }
         } catch (err) {
             console.error('Error fetching roadmap:', err);
@@ -92,6 +98,33 @@ export const IndividualRoadmap: React.FC = () => {
     const handleViewProblem = (problem: Problem, phase: Phase) => {
         // Navigate to problem with tracking context
         window.open(`/problems/${problem.id}?source=roadmap&roadmapId=${roadmap?.id}&phaseId=${phase.id}`, '_blank');
+    };
+
+    const handleMarkPhaseAsCompleted = async (phase: Phase) => {
+        if (!roadmap) return;
+
+        try {
+            const response = await fetch(
+                `http://localhost:8000/roadmap/${roadmap.id}/phase/${phase.id}/complete`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': user?.id.toString() || ''
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('Failed to mark phase as completed');
+            }
+
+            // Refresh roadmap to update phase completion status
+            await fetchRoadmap();
+        } catch (err) {
+            console.error('Error marking phase as completed:', err);
+            setError(err instanceof Error ? err.message : 'Failed to mark phase as completed');
+        }
     };
 
     if (loading) {
@@ -170,7 +203,7 @@ export const IndividualRoadmap: React.FC = () => {
                                     onClick={() => !isLocked && setSelectedPhaseId(phase.id)}
                                 >
                                     <div className="timeline-node">
-                                        {phase.is_completed ? '✓' : idx + 1}
+                                        {phase.is_completed ? 'Done' : idx + 1}
                                     </div>
                                     <div className="timeline-label">Phase {idx + 1}</div>
                                 </div>
@@ -186,115 +219,176 @@ export const IndividualRoadmap: React.FC = () => {
                 </div>
 
             <div className="roadmap-content">
-                {/* Phase Detail Content */}
-                <div className="phase-detail-main">
-                    {selectedPhase ? (
-                        <>
-                            <div className="phase-detail-header">
-                                <h2 className="phase-name">
-                                    Phase {selectedPhase.phase_order}: {selectedPhase.phase_name}
-                                </h2>
-                                <p className="phase-goal">{selectedPhase.phase_goal}</p>
-                            </div>
-
-                            {/* Phase Content */}
-                            <div className="phase-content">
-                                <div className="phase-markdown">
-                                    {selectedPhase.content_markdown ? (
-                                        <ReactMarkdown className="markdown-body">
-                                            {selectedPhase.content_markdown}
-                                        </ReactMarkdown>
-                                    ) : (
-                                        <p>No content available for this phase.</p>
-                                    )}
+                {/* Congratulations Screen - Show if all phases completed */}
+                {selectedPhaseId === null && roadmap?.phases.every(p => p.is_completed) && (
+                    <div className="congratulations-container">
+                        <div className="congratulations-content">
+                            <div className="confetti-animation"></div>
+                            <div className="trophy-icon">🏆</div>
+                            <h2 className="congratulations-title">Congratulations!</h2>
+                            <p className="congratulations-subtitle">You have successfully completed the</p>
+                            <p className="roadmap-name-highlight">{roadmap?.topic}</p>
+                            <p className="congratulations-description">
+                                You've mastered all phases and demonstrated exceptional learning. Keep up the great work!
+                            </p>
+                            
+                            <div className="completion-stats">
+                                <div className="stat-item">
+                                    <span className="stat-number">{roadmap?.phases.length}</span>
+                                    <span className="stat-label">Phases Completed</span>
+                                </div>
+                                <div className="stat-divider"></div>
+                                <div className="stat-item">
+                                    <span className="stat-number">100%</span>
+                                    <span className="stat-label">Progress</span>
                                 </div>
                             </div>
 
-                            {/* Problems Section */}
-                            {selectedPhase.problems && selectedPhase.problems.length > 0 && (
-                                <div className="problems-section">
-                                    <h3 className="problems-title">
-                                        🎯 Recommended Problems ({selectedPhase.problems.length})
-                                    </h3>
-                                    <div className="problems-grid">
-                                        {selectedPhase.problems.map((problem) => (
-                                            <div
-                                                key={problem.id}
-                                                className={`problem-card ${problem.is_solved ? 'solved' : ''}`}
-                                                onClick={() => handleViewProblem(problem, selectedPhase)}
-                                            >
-                                                <div className="problem-card-header">
-                                                    <h4 className="problem-title">{problem.title}</h4>
-                                                    <span className={`difficulty-badge ${problem.difficulty?.toLowerCase()}`}>
-                                                        {problem.difficulty}
-                                                    </span>
-                                                </div>
-                                                
-                                                <div className="problem-action">
-                                                    {problem.is_solved ? (
-                                                        <span className="problem-solved">✓ Solved</span>
-                                                    ) : (
-                                                        <small>Click to solve →</small>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
+                            <div className="action-buttons">
+                                <button 
+                                    className="btn-back-roadmaps"
+                                    onClick={() => navigate('/my-roadmaps')}
+                                >
+                                    ← Back to My Roadmaps
+                                </button>
+                                <button 
+                                    className="btn-create-new"
+                                    onClick={() => navigate('/generate-roadmap')}
+                                >
+                                    + Create New Roadmap
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Phase Detail Content - Show if phase is selected */}
+                {selectedPhaseId !== null && (
+                    <div className="phase-detail-main">
+                        {selectedPhase ? (
+                            <>
+                                <div className="phase-detail-header">
+                                    <h2 className="phase-name">
+                                        Phase {selectedPhase.phase_order}: {selectedPhase.phase_name}
+                                    </h2>
+                                    <p className="phase-goal">{selectedPhase.phase_goal}</p>
+                                </div>
+
+                                {/* Phase Content */}
+                                <div className="phase-content">
+                                    <div className="phase-markdown">
+                                        {selectedPhase.content_markdown ? (
+                                            <ReactMarkdown className="markdown-body">
+                                                {selectedPhase.content_markdown}
+                                            </ReactMarkdown>
+                                        ) : (
+                                            <p>No content available for this phase.</p>
+                                        )}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Action Buttons */}
-                            <div className="phase-actions">
-                                {selectedPhase.phase_order > 1 && (
-                                    <button
-                                        className="btn-prev-phase"
-                                        onClick={() => {
-                                            const prevPhase = roadmap.phases.find(
-                                                p => p.phase_order === selectedPhase.phase_order - 1
-                                            );
-                                            if (prevPhase) setSelectedPhaseId(prevPhase.id);
-                                        }}
-                                    >
-                                        ← Previous Phase
-                                    </button>
+                                {/* Problems Section */}
+                                {selectedPhase.problems && selectedPhase.problems.length > 0 && (
+                                    <div className="problems-section">
+                                        <h3 className="problems-title">
+                                            🎯 Recommended Problems ({selectedPhase.problems.length})
+                                        </h3>
+                                        <div className="problems-grid">
+                                            {selectedPhase.problems.map((problem) => (
+                                                <div
+                                                    key={problem.id}
+                                                    className={`problem-card ${problem.is_solved ? 'solved' : ''}`}
+                                                    onClick={() => handleViewProblem(problem, selectedPhase)}
+                                                >
+                                                    <div className="problem-card-header">
+                                                        <h4 className="problem-title">{problem.title}</h4>
+                                                        <span className={`difficulty-badge ${problem.difficulty?.toLowerCase()}`}>
+                                                            {problem.difficulty}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="problem-action">
+                                                        {problem.is_solved ? (
+                                                            <span className="problem-solved">Solved</span>
+                                                        ) : (
+                                                            <small>Click to solve →</small>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
-                                
 
-
-                                {selectedPhase.phase_order < roadmap.phases.length && (
-                                    <button
-                                        className="btn-next-phase"
-                                        disabled={selectedPhase.phase_order >= currentPhaseIndex + 1}
-                                        style={{ opacity: selectedPhase.phase_order >= currentPhaseIndex + 1 ? 0.5 : 1, cursor: selectedPhase.phase_order >= currentPhaseIndex + 1 ? 'not-allowed' : 'pointer' }}
-                                        onClick={() => {
-                                            const nextPhase = roadmap.phases.find(
-                                                p => p.phase_order === selectedPhase.phase_order + 1
-                                            );
-                                            // Only navigate if next phase is not locked
-                                            // phases are 0-indexed in array, phase_order is 1-based usually? 
-                                            // Wait, logic check:
-                                            // currentPhaseIndex is 0-based index of the first unfinished phase.
-                                            // If I am at currentPhaseIndex (e.g. 0), next phase is 1. Locked is > 0. So 1 is locked.
-                                            // Wait, if 0 is unfinished, 0 is Current. 1 is Future (Locked).
-                                            // So I cannot go to 1.
-                                            // So if selectedPhase (0) -> Next is 1. 1 > 0? Yes. Locked.
-                                            // Correct.
-                                            if (nextPhase && (nextPhase.phase_order - 1) <= currentPhaseIndex) {
-                                                 setSelectedPhaseId(nextPhase.id);
-                                            }
-                                        }}
-                                    >
-                                        Next Phase →
-                                    </button>
+                                {/* No Problems Section - Show Mark as Completed Button */}
+                                {(!selectedPhase.problems || selectedPhase.problems.length === 0) && !selectedPhase.is_completed && (
+                                    <div className="no-problems-section">
+                                        <div className="no-problems-message">
+                                            <p>📚 No problems assigned to this phase yet.</p>
+                                            <p className="subtitle">You can mark this phase as completed and move to the next one.</p>
+                                        </div>
+                                        <button
+                                            className="btn-mark-completed"
+                                            onClick={() => handleMarkPhaseAsCompleted(selectedPhase)}
+                                        >
+                                            ✓ Mark Phase as Completed
+                                        </button>
+                                    </div>
                                 )}
+
+                                {/* Already Completed Message */}
+                                {(!selectedPhase.problems || selectedPhase.problems.length === 0) && selectedPhase.is_completed && (
+                                    <div className="phase-completed-section">
+                                        <div className="completed-message">
+                                            <p>✅ This phase has been completed!</p>
+                                            <p className="subtitle">Great job! Move to the next phase to continue learning.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="phase-actions">
+                                    {selectedPhase.phase_order > 1 && (
+                                        <button
+                                            className="btn-prev-phase"
+                                            onClick={() => {
+                                                const prevPhase = roadmap.phases.find(
+                                                    p => p.phase_order === selectedPhase.phase_order - 1
+                                                );
+                                                if (prevPhase) setSelectedPhaseId(prevPhase.id);
+                                            }}
+                                        >
+                                            ← Previous Phase
+                                        </button>
+                                    )}
+                                    
+
+                                    {selectedPhase.phase_order < roadmap.phases.length && (
+                                        <button
+                                            className="btn-next-phase"
+                                            disabled={selectedPhase.phase_order >= currentPhaseIndex + 1}
+                                            style={{ opacity: selectedPhase.phase_order >= currentPhaseIndex + 1 ? 0.5 : 1, cursor: selectedPhase.phase_order >= currentPhaseIndex + 1 ? 'not-allowed' : 'pointer' }}
+                                            onClick={() => {
+                                                const nextPhase = roadmap.phases.find(
+                                                    p => p.phase_order === selectedPhase.phase_order + 1
+                                                );
+                                                if (nextPhase && (nextPhase.phase_order - 1) <= currentPhaseIndex) {
+                                                     setSelectedPhaseId(nextPhase.id);
+                                                }
+                                            }}
+                                        >
+                                            Next Phase →
+                                        </button>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="no-phase-selected">
+                                <p>Select a phase to view details</p>
                             </div>
-                        </>
-                    ) : (
-                        <div className="no-phase-selected">
-                            <p>Select a phase to view details</p>
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                )}
             </div>
             </div>
         </div>

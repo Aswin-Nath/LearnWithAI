@@ -7,17 +7,17 @@ def evaluate_knowledge_node(state: RoadMapState) -> dict:
     """
     Deterministically computes strong and weak topics based on user answers.
     """
-    print("🔍 EVALUATE KNOWLEDGE NODE CALLED")  # This will always show
+    print("EVALUATE KNOWLEDGE NODE CALLED")  # This will always show
     
     mcqs = state.get("mcqs", [])
     user_answers = state.get("user_answers", [])
     
-    print(f"📊 MCQs count: {len(mcqs)}, Answers count: {len(user_answers)}")
-    print(f"📋 MCQs: {mcqs}")
-    print(f"✍️  Answers: {user_answers}")
+    print(f"MCQs count: {len(mcqs)}, Answers count: {len(user_answers)}")
+    print(f"MCQs: {mcqs}")
+    print(f"Answers: {user_answers}")
     
     if not mcqs or not user_answers or len(mcqs) != len(user_answers):
-        print(f"⚠️  Mismatch: {len(mcqs)} MCQs vs {len(user_answers)} answers")
+        print(f"Mismatch: {len(mcqs)} MCQs vs {len(user_answers)} answers")
         logger.warning(f"Mismatch: {len(mcqs)} MCQs vs {len(user_answers)} answers")
         return {
             **state,

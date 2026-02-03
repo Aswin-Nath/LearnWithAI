@@ -25,46 +25,60 @@ async def generate_problem(
     """
     logger.info(f"User {current_user.id} requesting custom problem: {request.topics}")
     
-    # 1. Call LLM to generate content AND executable test cases
-    generation_result = generate_custom_problem_content(
-        topics=request.topics,
-        user_query=request.user_query,
-        difficulty=request.difficulty
-    )
-    
-    content = generation_result.content
-    
-    # 2. Save to DB as a Problem
-    new_problem = Problem(
-        created_by=current_user.id,
-        title=content.title,
-        description=content.description_markdown,
-        constraints=content.constraints,
-        difficulty=request.difficulty,
-        is_custom=True,
-        generation_topic=request.topics,
-        generation_query=request.user_query,
-        editorial_markdown=content.editorial_markdown,
-        canonical_code=content.canonical_code
-    )
-    
-    db.add(new_problem)
-    db.commit()
-    db.refresh(new_problem)
-    
-    # 3. Save Generated Test Cases
-    if generation_result.test_cases:
-        logger.info(f"Saving {len(generation_result.test_cases)} test cases for problem {new_problem.id}")
-        for idx, tc in enumerate(generation_result.test_cases):
-            create_test_case(
-                db=db,
-                problem_id=new_problem.id,
-                input_data=tc.input,
-                expected_output=tc.output,
-                is_sample=(idx == 0) # Make the first one a sample for UI visibility
-            )
-    
-    return new_problem
+    try:
+        # 1. Call LLM to generate content AND executable test cases
+        generation_result = generate_custom_problem_content(
+            topics=request.topics,
+            user_query=request.user_query,
+            difficulty=request.difficulty
+        )
+        
+        content = generation_result.content
+        
+        # 2. Save to DB as a Problem
+        new_problem = Problem(
+            created_by=current_user.id,
+            title=content.title,
+            description=content.description_markdown,
+            constraints=content.constraints,
+            difficulty=request.difficulty,
+            is_custom=True,
+            generation_topic=request.topics,
+            generation_query=request.user_query,
+            editorial_markdown=content.editorial_markdown,
+            canonical_code=content.canonical_code
+        )
+        
+        db.add(new_problem)
+        db.commit()
+        db.refresh(new_problem)
+        
+        # 3. Save Generated Test Cases
+        if generation_result.test_cases:
+            logger.info(f"Saving {len(generation_result.test_cases)} test cases for problem {new_problem.id}")
+            for idx, tc in enumerate(generation_result.test_cases):
+                create_test_case(
+                    db=db,
+                    problem_id=new_problem.id,
+                    input_data=tc.input,
+                    expected_output=tc.output,
+                    is_sample=(idx == 0) # Make the first one a sample for UI visibility
+                )
+        
+        return new_problem
+        
+    except ValueError as e:
+        logger.error(f"Generation failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Problem generation failed: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during generation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during problem generation"
+        )
 
 @router.get("/", response_model=List[CustomProblemResponse])
 async def list_my_custom_problems(

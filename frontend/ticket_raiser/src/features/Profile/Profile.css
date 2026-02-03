@@ -56,8 +56,10 @@
 }
 
 .profile-email {
-  color: rgba(255, 255, 255, 0.9);
+  color: #ffffff;
   margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 /* Tabs */
@@ -119,8 +121,8 @@
 
 .profile-section h2 {
   font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 700;
+  color: #0f172a;
   margin: 0 0 1.5rem 0;
   padding-bottom: 1rem;
   border-bottom: 1px solid #e0e7ff;
@@ -134,25 +136,26 @@
 }
 
 .info-item {
-  background: #f8fafc;
+  background: black;
   padding: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #e0e7ff;
+  border: 1px solid #cbd5e1;
 }
 
 .info-label {
   display: block;
   font-size: 0.875rem;
-  color: #64748b;
+  color: black;
   margin-bottom: 0.5rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .info-value {
-  font-size: 1.125rem;
-  color: #1e293b;
+  font-size: 1.25rem;
+  color: red;
   margin: 0;
-  word-break: break-all;
+  /* word-break: break-all; */
+  font-weight: 700;
 }
 
 /* Role Badge */
@@ -184,18 +187,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f8fafc;
+  background: #ffffff;
   padding: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #e0e7ff;
+  border: 1px solid #cbd5e1;
 }
 
 .status-label {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #475569;
-  font-weight: 500;
+  color: #334155;
+  font-weight: 600;
 }
 
 .status-label svg {

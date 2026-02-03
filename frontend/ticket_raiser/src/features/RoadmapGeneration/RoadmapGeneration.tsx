@@ -305,13 +305,9 @@ const RoadmapGeneration: React.FC = () => {
 
     const renderInputStep = () => (
         <div className="roadmap-input-container">
-            <button className="back-btn" onClick={() => navigate('/problems')} style={{ alignSelf: 'flex-start', marginBottom: '-1rem' }}>
-                ← Back to Problems
-            </button>
-
             {/* Hero / Left Column */}
             <div className="input-hero-section">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="hero-content">
                     <h1 className="roadmap-title">Build Your Knowledge Path</h1>
                     <p className="roadmap-subtitle">
                         Tell us what you want to learn, and we'll craft a personalized path just for you.
@@ -320,7 +316,7 @@ const RoadmapGeneration: React.FC = () => {
             </div>
             
             {/* Form / Right Column */}
-            <div className="input-form-section">
+            <div className="input-form-section compact-form">
                 <div className="input-group">
                     <label>What Topic Do You Want to Learn?</label>
                     <input 
@@ -342,9 +338,11 @@ const RoadmapGeneration: React.FC = () => {
                     />
                 </div>
 
-                <button className="roadmap-primary-btn glow-effect" onClick={handleGenerateMCQs}>
-                    Start Your Journey
-                </button>
+                <div className="form-actions">
+                    <button className="roadmap-primary-btn glow-effect" onClick={handleGenerateMCQs}>
+                        Start Your Journey
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -559,7 +557,7 @@ const RoadmapGeneration: React.FC = () => {
                             </div>
                             {phase.problems && phase.problems.length > 0 && (
                                 <div className="phase-problems-count">
-                                    <small>📚 {phase.problems.length} problems</small>
+                                    <small>{phase.problems.length} problems</small>
                                 </div>
                             )}
                             <div className="phase-card-footer">
@@ -580,6 +578,8 @@ const RoadmapGeneration: React.FC = () => {
         );
     };
 
+    const isLoading = step === 'LOADING_MCQ' || step === 'LOADING_ROADMAP';
+
     return (
         <div className="roadmap-page-wrapper">
              <div className="background-shapes">
@@ -588,6 +588,33 @@ const RoadmapGeneration: React.FC = () => {
             </div>
             
             <Navbar />
+            
+            {!isLoading && (
+                <div className="wizard-header">
+                    <div className="wizard-steps">
+                        <div className={`wizard-step ${step === 'INPUT' ? 'active' : 'completed'}`}>
+                            <div className="step-circle">1</div>
+                            <span className="step-label">Topic</span>
+                        </div>
+                        <div className="wizard-connector"></div>
+                        <div className={`wizard-step ${step === 'ASSESSMENT' ? 'active' : step === 'COMPLETE' || step === 'ROADMAP_VIEW' ? 'completed' : ''}`}>
+                            <div className="step-circle">2</div>
+                            <span className="step-label">Assessment</span>
+                        </div>
+                        <div className="wizard-connector"></div>
+                        <div className={`wizard-step ${step === 'COMPLETE' ? 'active' : step === 'ROADMAP_VIEW' ? 'completed' : ''}`}>
+                            <div className="step-circle">3</div>
+                            <span className="step-label">Analysis</span>
+                        </div>
+                        <div className="wizard-connector"></div>
+                        <div className={`wizard-step ${step === 'ROADMAP_VIEW' ? 'active' : ''}`}>
+                            <div className="step-circle">4</div>
+                            <span className="step-label">Roadmap</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <div className="roadmap-content-wrapper">
                 <div className="roadmap-content">
                     {step === 'INPUT' && renderInputStep()}

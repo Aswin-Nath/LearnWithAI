@@ -253,11 +253,15 @@ def build_prompt(
     history_text = ""
     if conversation_context:
         history_str = []
-        for msg in conversation_context:
+        for msg in conversation_context[-4:]:  # Limit to last 4 messages (2 turns)
             if isinstance(msg, HumanMessage):
-                history_str.append(f"User: {msg.content}")
+                # Truncate long messages to 300 chars
+                content = msg.content[:300] + ("..." if len(msg.content) > 300 else "")
+                history_str.append(f"User: {content}")
             elif isinstance(msg, AIMessage):
-                history_str.append(f"AI: {msg.content}")
+                # Truncate long messages to 300 chars
+                content = msg.content[:300] + ("..." if len(msg.content) > 300 else "")
+                history_str.append(f"AI: {content}")
         
         history_text = "\n".join(history_str)
     
@@ -270,38 +274,41 @@ def build_prompt(
             seen_content.add(content_hash)
             deduplicated.append(chunk)
     
+    # Limit to top 2 chunks and truncate each to 250 chars
     context_text = "\n\n".join([
-        f"[{chunk['section']}]\n{chunk['content']}"
-        for chunk in deduplicated[:3]
+        f"[{chunk['section']}]\n{chunk['content'][:250]}" + ("..." if len(chunk['content']) > 250 else "")
+        for chunk in deduplicated[:2]
     ])
     
     if not context_text:
-        context_text = "(No specific context found - answer from general knowledge)"
+        context_text = "(No context)"
     
     sample_test_cases_text = ""
     if sample_test_cases:
         cases_lines = []
-        for i, tc in enumerate(sample_test_cases[:2], 1):
-            cases_lines.append(f"Example {i}:\nInput: {tc.get('input', 'N/A')}\nExpected Output: {tc.get('expected_output', 'N/A')}")
+        for i, tc in enumerate(sample_test_cases[:1], 1):  # Only first example
+            input_str = str(tc.get('input', 'N/A'))[:200]  # Truncate input to 200 chars
+            output_str = str(tc.get('expected_output', 'N/A'))[:200]  # Truncate output to 200 chars
+            cases_lines.append(f"Example {i}:\nInput: {input_str}\nOutput: {output_str}")
         sample_test_cases_text = "\n\n".join(cases_lines)
     
     if not sample_test_cases_text:
-        sample_test_cases_text = "(No sample test cases provided)"
+        sample_test_cases_text = "(No samples)"
     
     template = PROMPT_TEMPLATES[intent]
     system_prompt = template["system"]
     
-    if history_text:
-        system_prompt += f"\n\nCONVERSATION HISTORY:\n{history_text}\n\nUse this history to understand context (e.g. 'it', 'that code')."
+    # History is context-only, not added to system prompt to keep it lean
+    # (LangChain can handle messages separately if needed in future)
     
     replacements = {
         "problem_title": problem.get("title", "Unknown") if problem else "Unknown",
-        "problem_description": problem.get("description", "Unknown") if problem else "Unknown",
+        "problem_description": (problem.get("description", "Unknown")[:500] + "..." if len(problem.get("description", "Unknown") or "") > 500 else problem.get("description", "Unknown")) if problem else "Unknown",
         "constraints": problem.get("constraints", "No constraints provided") if problem else "No constraints provided",
         "difficulty": problem.get("difficulty", "Unknown") if problem else "Unknown",
         "time_limit": problem.get("time_limit", "Unknown") if problem else "Unknown",
         "user_query": user_query or "",
-        "user_code": user_code or "(No code provided)",
+        "user_code": (user_code[:400] + "..." if len(user_code or "") > 400 else user_code) if user_code else "(No code provided)",
         "context": context_text,
         "sample_test_cases": sample_test_cases_text
     }

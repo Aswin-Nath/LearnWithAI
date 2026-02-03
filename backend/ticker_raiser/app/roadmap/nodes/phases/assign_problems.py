@@ -39,6 +39,7 @@ def assign_problems_node(state: RoadMapState) -> dict:
             stmt = text("""
                 SELECT id, title, difficulty, description 
                 FROM problems 
+                WHERE is_custom = false
                 ORDER BY description_embedding <=> :embedding 
                 LIMIT 20
             """)

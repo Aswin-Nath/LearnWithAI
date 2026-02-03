@@ -1,11 +1,7 @@
 // ProblemList feature component
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-// import { Navbar } from '../../components/Navbar';
-import { Navbar
-  
- } from '../../components/Navbar/Navbar';
+import { Navbar} from '../../components/Navbar/Navbar';
 import { apiFetch } from '../../core/api';
 import './ProblemList.css';
 
@@ -55,7 +51,6 @@ export const ProblemList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<'ALL' | 'EASY' | 'MEDIUM' | 'HARD'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'SOLVED' | 'ATTEMPTED' | 'TODO'>('ALL');
-  const { user } = useAuth();
 
   useEffect(() => {
     fetchProblems();

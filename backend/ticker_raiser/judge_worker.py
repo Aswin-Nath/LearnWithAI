@@ -287,7 +287,7 @@ def judge_submission(submission_id: int) -> bool:
             )
             
             if result["passed"]:
-                logger.debug(f"✓ Test {i} PASSED")
+                logger.debug(f"Test {i} PASSED")
                 passed_count += 1
             elif result["timed_out"]:
                 logger.warning(f" Test {i} TIME_LIMIT_EXCEEDED")
@@ -358,7 +358,7 @@ def worker_loop():
     
     try:
         redis_client.ping()
-        logger.info("✓ Redis connected")
+        logger.info("Redis connected")
     except Exception as e:
         logger.error(f" Redis connection failed: {e}")
         logger.error("Make sure Redis is running: docker run -d --name redis -p 6379:6379 redis:7-alpine")
@@ -374,14 +374,14 @@ def worker_loop():
         if result.returncode != 0:
             logger.error(" Docker not available or not running")
             sys.exit(1)
-        logger.info("✓ Docker available")
+        logger.info("Docker available")
     except Exception as e:
         logger.error(f" Docker check failed: {e}")
         sys.exit(1)
     
     cleanup_orphaned_containers()
     
-    logger.info("✓ Worker ready - listening for submissions...")
+    logger.info("Worker ready - listening for submissions...")
     
     while True:
         try:

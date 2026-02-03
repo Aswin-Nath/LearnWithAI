@@ -24,6 +24,14 @@ def build_prompt_node(state: GraphState) -> dict:
             conversation_context=messages,
             sample_test_cases=samples
         )
+        
+        # Log prompt length for monitoring
+        prompt_len = len(prompt_text)
+        logger.info(f"[PROMPT] Built prompt, length={prompt_len} chars (~{prompt_len//4} tokens)")
+        
+        if prompt_len > 6000:
+            logger.warning(f"[PROMPT] WARNING: Prompt is {prompt_len} chars, may approach token limits")
+        
         return {"prompt_text": prompt_text}
     except Exception as e:
         logger.error(f"[PROMPT]  Prompt building failed: {str(e)}", exc_info=True)

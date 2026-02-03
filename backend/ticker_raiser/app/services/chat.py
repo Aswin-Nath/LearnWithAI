@@ -136,7 +136,7 @@ class ChatService:
             )
             
             logger.info(
-                f"[ChatService] ✓ Inserted conversation pair for "
+                f"[ChatService] Inserted conversation pair for "
                 f"user_id={user_id}, problem_id={problem_id}"
             )
             return user_msg, ai_msg

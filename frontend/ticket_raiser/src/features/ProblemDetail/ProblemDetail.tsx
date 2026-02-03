@@ -153,7 +153,7 @@ export const ProblemDetailPage: React.FC = () => {
                  
                  if (result.success === false) {
                      // Methodology Verification Failed
-                     alert(`⚠️ Methodology Check Failed!\n\n${result.feedback}\n\nPlease update your code to use the correct approach.`);
+                     alert(`Methodology Check Failed!\n\n${result.feedback}\n\nPlease update your code to use the correct approach.`);
                  } else {
                      console.log("Roadmap progress updated detected!");
                  }

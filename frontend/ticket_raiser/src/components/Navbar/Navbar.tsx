@@ -68,18 +68,24 @@ export const Navbar: React.FC = () => {
         <div className="navbar-desktop">
           {/* Navigation Links */}
           <div className="navbar-nav">
-            <button 
-              className="nav-btn-create-roadmap"
-              onClick={() => navigate('/generate-roadmap')}
-            >
-              + Create Roadmap
-            </button>
-            <Link to="/my-roadmaps" className="nav-link">
-              Roadmaps
-            </Link>
-            <Link to="/custom-problems" className="nav-link">
-              Custom Problems
-            </Link>
+            {user?.role !== 'PROBLEM_SETTER' && (
+              <button 
+                className="nav-btn-create-roadmap"
+                onClick={() => navigate('/generate-roadmap')}
+              >
+                + Create Roadmap
+              </button>
+            )}
+            {user?.role !== 'PROBLEM_SETTER' && (
+              <>
+                <Link to="/my-roadmaps" className="nav-link">
+                  Roadmaps
+                </Link>
+                <Link to="/custom-problems" className="nav-link">
+                  Custom Problems
+                </Link>
+              </>
+            )}
           </div>
 
           {/* User Menu */}
@@ -144,20 +150,26 @@ export const Navbar: React.FC = () => {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="mobile-menu">
-          <button
-            className="mobile-nav-link mobile-create-btn"
-            onClick={() => {
-              navigate('/generate-roadmap');
-              setMobileMenuOpen(false);
-            }}
-            disabled={isLoading}
-          >
-            + Create Roadmap
-          </button>
-          <div className="mobile-divider"></div>
-          <Link to="/my-roadmaps" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-            Roadmaps
-          </Link>
+          {user?.role !== 'PROBLEM_SETTER' && (
+            <button
+              className="mobile-nav-link mobile-create-btn"
+              onClick={() => {
+                navigate('/generate-roadmap');
+                setMobileMenuOpen(false);
+              }}
+              disabled={isLoading}
+            >
+              + Create Roadmap
+            </button>
+          )}
+          {user?.role !== 'PROBLEM_SETTER' && (
+            <>
+              <div className="mobile-divider"></div>
+              <Link to="/my-roadmaps" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                Roadmaps
+              </Link>
+            </>
+          )}
           <div className="mobile-divider"></div>
           <button
             className="mobile-nav-link"

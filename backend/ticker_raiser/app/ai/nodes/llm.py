@@ -12,6 +12,9 @@ def invoke_llm_node(state: GraphState) -> dict:
         return {"answer": "Error: Empty prompt"}
     
     try:
+        prompt_len = len(prompt_text)
+        logger.info(f"[LLM] Invoking LLM with prompt length={prompt_len} chars (~{prompt_len//4} tokens)")
+        
         response = llm.invoke([HumanMessage(content=prompt_text)])
         answer = response.content
         return {"answer": answer}

@@ -95,7 +95,13 @@ export const MyRoadmaps: React.FC = () => {
     };
 
     const getCompletionPercentage = (currentPhaseOrder: number, phaseCount: number) => {
-        return Math.round(((currentPhaseOrder - 1) / phaseCount) * 100);
+        if(currentPhaseOrder==phaseCount){
+            return 100;
+        }
+        // currentPhaseOrder represents the NEXT phase to work on
+        // So completed phases = currentPhaseOrder - 1, capped at phaseCount
+        const completedPhases = Math.min(currentPhaseOrder - 1, phaseCount);
+        return Math.round((completedPhases / phaseCount) * 100);
     };
 
     if (loading) {
@@ -132,7 +138,7 @@ export const MyRoadmaps: React.FC = () => {
             {/* Roadmaps Grid or Empty State */}
             {roadmaps.length === 0 ? (
                 <div className="empty-state">
-                    <div className="empty-icon">📚</div>
+
                     <h2>No Roadmaps Yet</h2>
                     <p>Create your first learning roadmap to get started!</p>
                 </div>
@@ -161,8 +167,11 @@ export const MyRoadmaps: React.FC = () => {
                                         className="btn-delete-roadmap"
                                         onClick={(e) => handleDeleteRoadmap(e, roadmap.id)}
                                         title="Delete Roadmap"
+                                        aria-label="Delete Roadmap"
                                     >
-                                        🗑️
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="trash-icon">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
                                     </button>
                                 </div>
 

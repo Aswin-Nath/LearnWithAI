@@ -210,7 +210,7 @@ export const UploadEditorialPage: React.FC = () => {
               <div className="editorial-meta">
                 <p>
                   <span>Status:</span>
-                  ✓ PDF uploaded to storage and indexed in knowledge base
+                  PDF uploaded to storage and indexed in knowledge base
                 </p>
                 {editorial && editorial.startsWith('http') && (
                   <p>
@@ -223,7 +223,7 @@ export const UploadEditorialPage: React.FC = () => {
               </div>
 
               {editorial && !editorial.startsWith('http') && (
-                <p className="upload-success">✓ {editorial}</p>
+                <p className="upload-success">{editorial}</p>
               )}
 
               <div className="upload-divider">

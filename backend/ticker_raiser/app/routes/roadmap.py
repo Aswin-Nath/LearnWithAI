@@ -131,9 +131,9 @@ async def assess_knowledge(
     snapshot = graph.get_state(config)
     current_state = snapshot.values
     
-    print(f"🔗 ASSESS ENDPOINT CALLED - Thread ID: {request.thread_id}")
-    print(f"📊 Current MCQs: {current_state.get('mcqs', [])}")
-    print(f"✍️  User answers: {request.user_answers}")
+    print(f"ASSESS ENDPOINT CALLED - Thread ID: {request.thread_id}")
+    print(f"Current MCQs: {current_state.get('mcqs', [])}")
+    print(f"User answers: {request.user_answers}")
     
     logger.info(f"Current MCQs: {current_state.get('mcqs', [])}")
     logger.info(f"User answers: {request.user_answers}")
@@ -149,7 +149,7 @@ async def assess_knowledge(
         # Resume graph execution
         # The graph will resume from the interrupt in present_mcqs and continue to evaluate_knowledge
         # Then stop at the interrupt_after=['evaluate_knowledge']
-        print("▶️ Resuming graph execution...")
+        print("Resuming graph execution...")
         for event in graph.stream(None, config=config, stream_mode="updates"):
             print(f"📌 Graph Event: {event}")
             logger.info(f"Event: {event}")
@@ -157,8 +157,8 @@ async def assess_knowledge(
         snapshot = graph.get_state(config)
         final_state = snapshot.values
         
-        print(f"💾 Final state knowledge: {final_state.get('knowledge_state', {})}")
-        print(f"⚠️  Final state error: {final_state.get('error', '')}")
+        print(f"Final state knowledge: {final_state.get('knowledge_state', {})}")
+        print(f"Final state error: {final_state.get('error', '')}")
         
         logger.info(f"Final state knowledge: {final_state.get('knowledge_state', {})}")
         logger.info(f"Final state error: {final_state.get('error', '')}")
@@ -603,6 +603,60 @@ async def mark_problem_solved(
     except Exception as e:
         db.rollback()
         logger.error(f"Error toggling problem status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{roadmap_id}/phase/{phase_id}/complete")
+async def mark_phase_completed(
+    roadmap_id: int,
+    phase_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Marks a phase as completed without requiring problem solving.
+    Used when a phase has no problems or user chooses to skip.
+    """
+    try:
+        # Verify ownership
+        roadmap = db.query(Roadmap).filter(
+            Roadmap.id == roadmap_id,
+            Roadmap.user_id == current_user.id
+        ).first()
+        
+        if not roadmap:
+            raise HTTPException(status_code=404, detail="Roadmap not found")
+        
+        # Get the phase
+        phase = db.query(RoadmapPhase).filter(
+            RoadmapPhase.id == phase_id,
+            RoadmapPhase.roadmap_id == roadmap_id
+        ).first()
+        
+        if not phase:
+            raise HTTPException(status_code=404, detail="Phase not found")
+        
+        # Mark phase as completed
+        from datetime import datetime, timezone
+        phase.is_completed = True
+        phase.completed_at = datetime.now(timezone.utc)
+        
+        # Update roadmap's current phase to next one
+        if phase.phase_order < len(roadmap.phases):
+            if roadmap.current_phase_order <= phase.phase_order:
+                roadmap.current_phase_order = phase.phase_order + 1
+        
+        db.commit()
+        logger.info(f"Phase {phase_id} marked as completed by user {current_user.id}")
+        
+        return {
+            "success": True,
+            "message": "Phase completed successfully!",
+            "phase_completed": True
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error marking phase as completed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/{roadmap_id}")

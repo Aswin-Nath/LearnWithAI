@@ -39,7 +39,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
             className="toolbar-btn"
             title="Open in new tab"
           >
-            🔗
+            Open
           </a>
           
           <button 
